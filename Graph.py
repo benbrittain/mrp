@@ -1,8 +1,6 @@
 import copy
 
 import math
-
-
 class Graph:
 
     def __init__(self):
@@ -121,26 +119,47 @@ class Graph:
 
 
 g = Graph()
+g.add_node('a',-54.54,9)
+g.add_node('b',-54.43,13)
+g.connect('a', 'b')
 
-g.add_node(0, 0, 0)
-g.add_node(1, 1, 1)
-g.add_node(2, 2, 2)
-g.add_node(3, 3, 3)
-g.add_node(4, 4, 4)
-g.add_node(5, 5, 5)
-g.add_node(9, 9, 9)
-g.connect(0, 1)
-g.connect(0, 2)
-g.connect(1, 4)
-g.connect(1, 9, 1)
-g.connect(2, 3)
-g.connect(4, 5)
-g.connect(5, 2)
-g.connect(5, 3)
+g.add_node('c',-46,12.51)
+g.connect('b', 'c')
+
+g.add_node('d',-46,2)
+g.connect('c', 'd')
+
+g.add_node('e',-46,-9)
+g.connect('d', 'e')
+
+g.add_node('f',-36,12.5)
+g.connect('c', 'f')
+
+g.add_node('g',-10,12.5)
+g.connect('f', 'g')
+
+
+g.add_node('h',8,12.6)
+g.connect('g', 'h')
+
+
+g.add_node('i',8,1)
+g.connect('h', 'i')
+
+
+g.add_node('j',8,-9)
+g.connect('i', 'j')
+
+
+g.add_node('k',-28,-9)
+g.connect('j', 'k')
+g.connect('e', 'k')
+
+
 
 g.floyd_warshall()
 
-print g.get_path_between((0, 0), (10, 10))
+#print g.get_path_between((-46,10), (8,1))
 
 
 
