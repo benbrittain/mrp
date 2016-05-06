@@ -83,7 +83,7 @@ class Localizer(tk.Frame):
         self.odom_queue = Queue.LifoQueue()
 
         self.count = 0
-        self.goal_pub = rospy.Publisher('/endgoal', String, queue_size=1)
+        self.goal_pub = rospy.Publisher('/localized_pos', String, queue_size=1)
 
         self.task_pool = Pool(processes=5)
 
@@ -263,6 +263,7 @@ class Localizer(tk.Frame):
     def laser_update(self, lmsg):
         self.laser_queue.put(lmsg)
 
+# zomg. so much copying. how are there not better primitives?!
 def update_particle((p, rread, maparr)):
     #np = Particle(p.x, p.y, p.theta, p.p)
     if p.p != 0:
