@@ -16,6 +16,7 @@ from sensor_msgs.msg import LaserScan
 from p2os_msgs.msg import SonarArray
 from p2os_msgs.msg import MotorState
 
+import string
 
 import numpy as np
 from math import atan2
@@ -41,26 +42,60 @@ class Navigator(object):
         self.motor_publisher = rospy.Publisher("cmd_motor_state", MotorState,queue_size=10,latch = True)
         self.motor_publisher.publish(MotorState(1))
         
+        
+        self.last_planned_goal = None
+        self.planned_goal = None
+        
         if run_mode == 'hw':
             print('In hardware mode')
             rospy.Subscriber('/pose', Odometry, self.update_odometer)
             rospy.Subscriber('/scan', LaserScan, self.update_laser_scanner)
             rospy.Subscriber('/sonar', SonarArray, self.update_sonar_scanner)
             self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10, latch = True)
+            
+            #### Final project code
+            rospy.Subscriber("/goal", string, self.update_goal)
+            rospy.Subscriber("/localized_pose", string, self.update_localized_pose)
         elif run_mode == 'sim':
             print('In simulator mode')
             rospy.Subscriber('/r1/odom', Odometry, self.update_odometer)
             rospy.Subscriber('/r1/kinect_laser/scan', LaserScan, self.update_laser_scanner)
             rospy.Subscriber('/r1/sonar', SonarArray, self.update_sonar_scanner)
+            
             self.velocity_publisher = rospy.Publisher('r1/cmd_vel', Twist, queue_size=10, latch = True)
+            
+            #### Final project code
+            rospy.Subscriber("/goal", string, self.update_goal)
+            rospy.Subscriber("/localized_pose", string, self.update_localized_pose)
         else:
             print('Invalid Run Mode')
             
         # let the subscriber tap in to the odom topic    
         time.sleep(4)
         
-       
-
+    ###################################################
+    # Method to get goal information from path planner
+    ###################################################  
+    def update_goal(self, goal_msg):
+        goal_msg == None:
+            return
+        
+        coordinates = goal_msg.split()
+        
+        self.planned_goal = [float(coordinates[0]),float(coordinates[1])]
+    
+    ###################################################
+    # Method to get goal information from localizer
+    ###################################################  
+    def update_localized_pose(self, localized_pose_msg):
+        localized_pose_msg == None:
+            return
+        
+        pose = localized_pose_msg.split()
+        self.loz_current_location = [float(pose[0]),float(pose[1])]
+        self.loz_yaw = float(pose[2])
+        
+        
     ###########################################
     # Method to load location data from file
     ###########################################
