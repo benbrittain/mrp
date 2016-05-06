@@ -16,6 +16,8 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from p2os_msgs.msg import SonarArray
 from geometry_msgs.msg import Quaternion
+from std_msgs.msg import String
+
 
 from Particle import *
 
@@ -47,7 +49,7 @@ class Localizer(tk.Frame):
 
     def __init__(self, supplied_map, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
-        self.master.title("I'm the map!")
+        self.master.title("Localizer")
         self.master.minsize(width=2000, height=700)
         self.mapfile = supplied_map
         self.themap = Image.open(self.mapfile, mode='r')
@@ -78,6 +80,8 @@ class Localizer(tk.Frame):
         self.odom_queue = Queue.LifoQueue()
 
         self.count = 0
+        self.goal_pub = rospy.Publisher('/endgoal', String, queue_size=1)
+
 
     def resample(self, count):
         """
@@ -165,23 +169,22 @@ class Localizer(tk.Frame):
     def update(self):
         count = 0
         while True:
+            start_time = rospy.get_time()
             count += 1
             mov = self.get_movement()
             if mov is None:
                 continue
 
-            print("HERE 1!")
             dist, dtheta = mov[0], mov[1]
 
             if dist == 0 and dtheta == 0:
                 continue
 
-            print count, dist, dtheta
             for p in self.particles:
                 p.move(dist, math.degrees(dtheta), self.maparr)
 
-            for p in self.particles:
-                print(p.p)
+            #for p in self.particles:
+            #    print(p.p)
             lmsg = self.get_laser_msg()
             if lmsg is None:
                 continue
@@ -193,11 +196,14 @@ class Localizer(tk.Frame):
                 if p.p != 0:
                     pread = p.sense(self.maparr)
                     p.p *= prob_diff_readings(rread, pread)
-            print("HERE 2!")
+            end_time = rospy.get_time()
+            print("Time taken %d seconds"%(end_time -start_time))
 
-            if self.is_converged(strategy="centroid"):
+            centroid = self.converged_loc(strategy="centroid")
+            if centroid != None:
                 print 'Converged !'
-                break
+                goal_str = "%f %f" %centroid
+                self.goal_pub.publish(goal_str)
 
             self.remove_dead_particles()
             self.normalize_particles()
@@ -219,7 +225,7 @@ class Localizer(tk.Frame):
         if len(self.particles) < RESAMPLE_THRESHOLD:
             self.resample(TOTAL_PARTICLES - len(self.particles))
 
-    def is_converged(self, strategy="centroid"):
+    def converged_loc(self, strategy="centroid"):
 
         if strategy == "centroid":
             coords = np.asarray([(p.x, p.y) for p in self.particles])
@@ -230,9 +236,9 @@ class Localizer(tk.Frame):
 
             if particles_near_centroid > CENTROID_THRESHOLD:
                 print 'converged about ', centroid
-                return True
+                return centroid
             else:
-                return False
+                return None
 
         else:
             # Bounding box. Is not complete. How to eliminate outliers?
