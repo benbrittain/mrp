@@ -345,7 +345,7 @@ class Navigator(object):
     #######################################################
     # Method to navigate the robot through given points  
     #######################################################          
-    def navigate(self,location_file):
+    def navigate(self):
         
         
         self.location_file = location_file
@@ -354,49 +354,56 @@ class Navigator(object):
         so_many_sec = 0.0
         print ("Started navigating\n")
         
-        #for location in self.locations_to_go:
-        for goal in self.locations_to_go:
-            self.next_goal = goal
+        while self.planned_goal == None:
+            wait = True
+       
+        #self.next_goal = goal
+        self.next_goal = self.planned_goal
+        
+        dYaw = self.get_dYaw()
+        delta_dist = self.get_delta_distance()
+         
+        start_time = rospy.get_time()
+        publish_rate = rospy.Rate(10) 
+       
+        while delta_dist >0.2: # position accurate within  20 cm
+            
+            linear_velocity_vector = self.give_linear_velocity(delta_dist)
+            angular_velocity_vector = self.give_angular_velocity(dYaw)
+    
+            # stop angular velocity when delta-yaw is accurate within 0.01 rad
+            if math.fabs(dYaw) < 0.01:
+                angular_velocity_vector = Vector3(0.0,0.0,0.0)
+            
+            # give little linear velocity when delta-yaw is greater than 0.3 rad
+            # this ensures that robot keeps moving forward when obstructed, in bug like 
+            # fashion without using any memory. Inefficient but works.
+            if  math.fabs(dYaw) > 0.3: #0.3
+                linear_velocity_vector = Vector3(0.2,0.0,0.0)
+            
+            twist = Twist( linear_velocity_vector,angular_velocity_vector)
+            self.velocity_publisher.publish(twist)
             
             dYaw = self.get_dYaw()
             delta_dist = self.get_delta_distance()
-             
-            start_time = rospy.get_time()
-            publish_rate = rospy.Rate(10) 
-           
-            while delta_dist >0.2: # position accurate within  20 cm
-                
-                linear_velocity_vector = self.give_linear_velocity(delta_dist)
-                angular_velocity_vector = self.give_angular_velocity(dYaw)
-        
-                # stop angular velocity when delta-yaw is accurate within 0.01 rad
-                if math.fabs(dYaw) < 0.01:
-                    angular_velocity_vector = Vector3(0.0,0.0,0.0)
-                
-                # give little linear velocity when delta-yaw is greater than 0.3 rad
-                # this ensures that robot keeps moving forward when obstructed, in bug like 
-                # fashion without using any memory. Inefficient but works.
-                if  math.fabs(dYaw) > 0.3: #0.3
-                    linear_velocity_vector = Vector3(0.2,0.0,0.0)
-                
-                twist = Twist( linear_velocity_vector,angular_velocity_vector)
-                self.velocity_publisher.publish(twist)
-                
-                dYaw = self.get_dYaw()
-                delta_dist = self.get_delta_distance()
-                
-                publish_rate.sleep()
-                 
-            end_time = rospy.get_time()
-            so_many_sec += (end_time-start_time)    
-            self.velocity_publisher.publish(Twist())
             
-            print ('Reached : '+str(self.next_goal))
-            print ('Actual Location [x,y]: '+str(self.current_location))
-            print ('Time taken '+str(end_time -start_time)+ ' seconds\n')
-            time.sleep(2)
-                
-                
+            publish_rate.sleep()
+             
+        end_time = rospy.get_time()
+        so_many_sec += (end_time-start_time)    
+        self.velocity_publisher.publish(Twist())
+        
+        print ('Reached : '+str(self.next_goal))
+        print ('Actual Location [x,y]: '+str(self.current_location))
+        print ('Time taken '+str(end_time -start_time)+ ' seconds\n')
+        time.sleep(2)
+        
+        self.last_planned_goal = self.next_goal
+        while self.planned_goal == self.last_planned_goal:
+            wait = True 
+       
+        self.navigate()
+            
         print('\nStopped navigating')
         print('Reached Final Goal')
         print('Total Time: '+str(so_many_sec)+ ' seconds')
@@ -416,7 +423,7 @@ if __name__ == '__main__':
         try:
             gemini = Navigator()
             time.sleep(2)
-            gemini.navigate(sys.argv[1])
+            gemini.navigate()
      
         except rospy.ROSInterruptException:
             pass
