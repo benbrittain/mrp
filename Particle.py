@@ -1,5 +1,6 @@
 import math
 from Utils import *
+import numpy as np
 
 SCATTER_SPREAD = 0.8
 SMALL_NOISE = 0.2
@@ -91,8 +92,8 @@ class Particle:
     def clone(self, map, with_noise=True):
         for _ in range(100):
             dtheta = self.theta + random.uniform(-ANGLE_NOISE, ANGLE_NOISE) if with_noise else 0
-            dx = self.x + random.uniform(-SMALL_NOISE, SMALL_NOISE) if with_noise else 0
-            dy = self.y + random.uniform(-SMALL_NOISE, SMALL_NOISE) if with_noise else 0
+            dx = self.x + np.random.normal(0.0, 0.3) if with_noise else 0
+            dy = self.y + np.random.normal(0.0, 0.3) if with_noise else 0
             if is_free_gcs(dx, dy, map):
                 return Particle(dx, dy, dtheta, self.p)
 

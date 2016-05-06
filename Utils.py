@@ -6,14 +6,14 @@ import multiprocessing
 from itertools import izip
 
 
-WORLD_TO_MAP_SCALE = 15.83
+WORLD_TO_MAP_SCALE = 15.758
 RAY_MOD = 30
 CELLS_IN_ONE_METRE = 2
-THRESHOLD = 0.00005
 LASER_MAX_RANGE = 10
 LASER_SCAN_ANGLE_INCREMENT = 10
-TOTAL_PARTICLES = 1000
+TOTAL_PARTICLES = 1200
 PARTICLES_PER_LANDMARK = TOTAL_PARTICLES / 6
+THRESHOLD = 1.0/(TOTAL_PARTICLES * 1.3)
 CENTROID_THRESHOLD = TOTAL_PARTICLES * 0.75  # %
 RESAMPLE_THRESHOLD = TOTAL_PARTICLES * 0.80  # %
 BOUNDING_BOX_AREA_CONVERGENCE = 4            # bounding box with area 4m^2 is considered converged
@@ -150,7 +150,7 @@ def prob_diff_readings(robot, particle):
     """
     diff = 1.0
     a = 1.0
-    c = 1.0
+    c = 0.2
     for expected, actual in zip(robot, particle):
         b = expected
         gaus_m = lambda x: a*math.e**(-1.0*(((x-b)**2.0)/(2.0*c**2)))

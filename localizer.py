@@ -106,28 +106,23 @@ class Localizer(tk.Frame):
         # Cumulative probabilities for weighted distribution
         cumul_probs = [_.p for _ in self.particles]
         cumul_probs = np.cumsum(cumul_probs)
-
-        new_particles = []
-
         # Re-sample particles with probability equivalent to weights
-        for _ in xrange(count):
+        for _ in range(count):
             rand_p = random.uniform(0, 1)
             i = bisect.bisect_left(cumul_probs, rand_p)
             try:
-                new_particles.append(self.particles[i].clone(self.maparr, with_noise=True))
+                self.particles.append(self.particles[i].clone(self.maparr, with_noise=True))
             except IndexError:
                 pass
-                #print 'Index Error WTF?!?!', i
-
-        self.particles += new_particles
 
     def normalize_particles(self):
-        sump = sum(_.p for _ in self.particles)
-        for i in xrange(len(self.particles)):
-            self.particles[i].p /= sump
+        min_x = min(_.p for _ in self.particles)
+        max_x = max(_.p for _ in self.particles)
+        for i in range(len(self.particles)):
+            self.particles[i].p = (self.particles[i].p - min_x) / (max_x - min_x)
 
     def remove_dead_particles(self, strategy=None):
-        self.particles = [p for p in self.particles if p.p > THRESHOLD]
+        self.particles = filter(lambda p: p.p > THRESHOLD, self.particles)
 
     def odom_update(self, omsg):
         self.odom_queue.put(omsg)
@@ -196,9 +191,13 @@ class Localizer(tk.Frame):
             rread = self.get_robot_readings(lmsg)
             rread = [r for idx, r in enumerate(rread) if idx % RAY_MOD == 0]
 
-            self.particles = self.task_pool.map(update_particle,
-                                zip(self.particles, itertools.cycle([rread]),
-                                    itertools.cycle([self.maparr])))
+            for p in self.particles:
+                if p.p != 0:
+                    pread = p.sense(self.maparr)
+                    p.p *= prob_diff_readings(rread, pread)
+            #self.particles = self.task_pool.map(update_particle,
+            #                    zip(self.particles, itertools.cycle([rread]),
+            #                        itertools.cycle([self.maparr])))
 
             end_time = rospy.get_time()
             print("Time taken %d seconds"%(end_time -start_time))
@@ -263,6 +262,9 @@ class Localizer(tk.Frame):
 
     def laser_update(self, lmsg):
         self.laser_queue.put(lmsg)
+
+    #def sonar_update(self, smsg):
+    #    self.sonar_queue.put(smsg)
 
 # zomg. so much copying. how are there not better primitives?!
 def update_particle((p, rread, maparr)):
