@@ -10,6 +10,8 @@ import rospy
 import tf
 import math
 import Queue
+import itertools
+import copy
 
 from threading import Timer
 from nav_msgs.msg import Odometry
@@ -17,7 +19,8 @@ from sensor_msgs.msg import LaserScan
 from p2os_msgs.msg import SonarArray
 from geometry_msgs.msg import Quaternion
 from std_msgs.msg import String
-
+from functools import partial
+from multiprocessing import Pool
 
 from Particle import *
 
@@ -81,6 +84,9 @@ class Localizer(tk.Frame):
 
         self.count = 0
         self.goal_pub = rospy.Publisher('/endgoal', String, queue_size=1)
+
+        self.task_pool = Pool(processes=5)
+
 
 
     def resample(self, count):
@@ -183,8 +189,6 @@ class Localizer(tk.Frame):
             for p in self.particles:
                 p.move(dist, math.degrees(dtheta), self.maparr)
 
-            #for p in self.particles:
-            #    print(p.p)
             lmsg = self.get_laser_msg()
             if lmsg is None:
                 continue
@@ -192,10 +196,10 @@ class Localizer(tk.Frame):
             rread = self.get_robot_readings(lmsg)
             rread = [r for idx, r in enumerate(rread) if idx % RAY_MOD == 0]
 
-            for p in self.particles:
-                if p.p != 0:
-                    pread = p.sense(self.maparr)
-                    p.p *= prob_diff_readings(rread, pread)
+            self.particles = self.task_pool.map(update_particle,
+                                zip(self.particles, itertools.cycle([rread]),
+                                    itertools.cycle([self.maparr])))
+
             end_time = rospy.get_time()
             print("Time taken %d seconds"%(end_time -start_time))
 
@@ -258,6 +262,14 @@ class Localizer(tk.Frame):
 
     def laser_update(self, lmsg):
         self.laser_queue.put(lmsg)
+
+def update_particle((p, rread, maparr)):
+    #np = Particle(p.x, p.y, p.theta, p.p)
+    if p.p != 0:
+        pread = p.sense(maparr)
+        p.p *= prob_diff_readings(rread, pread)
+    return p
+
 def main():
     rospy.init_node("localize", anonymous=True)
     root = tk.Tk()
