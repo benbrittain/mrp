@@ -223,7 +223,9 @@ class Navigator(object):
     # Method to calculate repulsive potential vector for a given sensor
     ###################################################################
     def get_potential_field(self,sensor_range_data, k):
-        yaw = self.yaw
+        
+        #yaw = self.yaw
+        yaw = self.loz_yaw 
         so_many_rows = sensor_range_data.shape[1]
         raw_data = np.column_stack((sensor_range_data.T, 
                                     np.zeros(so_many_rows),np.zeros(so_many_rows)))
@@ -244,7 +246,8 @@ class Navigator(object):
         k_g = 250
         
         next_goal = self.next_goal
-        current_loc = self.current_location
+        #current_loc = self.current_location
+        current_loc = self.loz_current_location
         d = self.get_euclidian_distance(next_goal, current_loc)
         
         next_goal = np.array(next_goal)
@@ -259,7 +262,10 @@ class Navigator(object):
     ###########################################################################    
     def get_dYaw(self):
         
-        yaw = self.yaw
+        #yaw = self.yaw
+        yaw = self.loz_yaw 
+        
+        
         
         # get repulsive obstacle field vector
         o_bar = self.calculate_obstacle_potential_field()
@@ -310,9 +316,12 @@ class Navigator(object):
         
         msg = self.odometry_msg 
         pos = msg.pose.pose.position
-         
-        x = pos.x
-        y = pos.y
+        
+       
+        #x = pos.x
+        #y = pos.y
+        x =  self.loz_current_location[0]
+        y =  self.loz_current_location[1]
         
         return self.get_euclidian_distance(self.next_goal,[x,y])
     
