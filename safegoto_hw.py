@@ -35,7 +35,7 @@ from math import atan2
 # Class to define Navigator Object
 ########################################
 class Navigator(object):
-    def __init__(self,location_file, run_mode):
+    def __init__(self, run_mode = 'sim'):
         
         rospy.init_node('navigator', anonymous=True)
         self.motor_publisher = rospy.Publisher("cmd_motor_state", MotorState,queue_size=10,latch = True)
@@ -56,8 +56,9 @@ class Navigator(object):
         else:
             print('Invalid Run Mode')
             
-        self.location_file = location_file
-        self.load_locations()
+        # let the subscriber tap in to the odom topic    
+        time.sleep(4)
+        
        
 
     ###########################################
@@ -65,8 +66,8 @@ class Navigator(object):
     ###########################################
     def load_locations(self):
         print("Loading location sequence: " + self.location_file) 
-        locations = []
-
+        locations = [self.location_file]
+        '''
         loc_file = open(self.location_file)
         for location in loc_file:
             coordinate = location.split()
@@ -77,7 +78,7 @@ class Navigator(object):
             x = float(coordinate[0])
             y = float(coordinate[1])
             locations.append([x,y])
-
+        '''
         print("Location sequence to go to is loaded.")
         self.locations_to_go = locations
         
@@ -309,9 +310,11 @@ class Navigator(object):
     #######################################################
     # Method to navigate the robot through given points  
     #######################################################          
-    def navigate(self):
-        # let the subscriber tap in to the odom topic
-        time.sleep(4)
+    def navigate(self,location_file):
+        
+        
+        self.location_file = location_file
+        self.load_locations()
         
         so_many_sec = 0.0
         print ("Started navigating\n")
@@ -376,9 +379,9 @@ if __name__ == '__main__':
         print "Usage:  rosrun abg_pkg goto.py <location_file> <run_mode: sim / hw>"
     else:    
         try:
-            gemini = Navigator(sys.argv[1],sys.argv[2])
+            gemini = Navigator()
             time.sleep(2)
-            gemini.navigate()
+            gemini.navigate(sys.argv[1])
      
         except rospy.ROSInterruptException:
             pass
