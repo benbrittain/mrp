@@ -55,7 +55,7 @@ class Navigator(object):
             
             #### Final project code
             rospy.Subscriber("/goal", string, self.update_goal)
-            rospy.Subscriber("/localized_pose", string, self.update_localized_pose)
+            rospy.Subscriber("/localized_pos", string, self.update_localized_pose)
         elif run_mode == 'sim':
             print('In simulator mode')
             rospy.Subscriber('/r1/odom', Odometry, self.update_odometer)
@@ -66,7 +66,7 @@ class Navigator(object):
             
             #### Final project code
             rospy.Subscriber("/goal", string, self.update_goal)
-            rospy.Subscriber("/localized_pose", string, self.update_localized_pose)
+            rospy.Subscriber("/localized_pos", string, self.update_localized_pose)
         else:
             print('Invalid Run Mode')
             
