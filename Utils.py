@@ -1,6 +1,7 @@
 import random
 
 import math
+import heapq
 
 WORLD_TO_MAP_SCALE = 15.83
 RAY_MOD = 30
@@ -13,6 +14,19 @@ PARTICLES_PER_LANDMARK = TOTAL_PARTICLES / 6
 CENTROID_THRESHOLD = TOTAL_PARTICLES * 0.75  # %
 RESAMPLE_THRESHOLD = TOTAL_PARTICLES * 0.80  # %
 BOUNDING_BOX_AREA_CONVERGENCE = 4            # bounding box with area 4m^2 is considered converged
+
+class PriorityQueue:
+    def __init__(self):
+        self.elements = []
+
+    def empty(self):
+        return len(self.elements) == 0
+
+    def put(self, item, priority):
+        heapq.heappush(self.elements, (priority, item))
+
+    def get(self):
+        return heapq.heappop(self.elements)[1]
 
 def bresenham(start, end):
     x1, y1 = start
