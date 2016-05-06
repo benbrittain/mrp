@@ -91,9 +91,8 @@ class Planner(tk.Frame):
         self.goal_loc = (-14.0,12.0)
         self.goal_loc = (8.0,-0.5)
 
-
         # rospy stuff
-        self.goal_pub = rospy.Publisher('/goal', String)
+        self.goal_pub = rospy.Publisher('/goal', String, queue_size=1)
 
 
     def get_queue(self, queue):
@@ -109,6 +108,9 @@ class Planner(tk.Frame):
 
     def plan_path(self):
         print("Planning new path")
+        self.draw_path = [] #clear
+        self.path = [] #clear
+
         map_curr_loc = gcs2map(*self.curr_loc)
         map_goal_loc = gcs2map(*self.goal_loc)
         came_from, cost_so_far = a_star(self.mappix, map_curr_loc, map_goal_loc)
@@ -155,23 +157,29 @@ class Planner(tk.Frame):
             loc_msg = self.get_queue(self.loc_queue)
             goal_msg = self.get_queue(self.goal_queue)
             if loc_msg != None:
-                self.curr_loc = tuple(map(float, loc_msg.split(",")))
+                self.curr_loc = tuple(map(float, loc_msg.split(" ")))
                 trigger_plan = True
             if goal_msg != None:
-                self.goal_x, self.goal_y = map(int, goal_msg.split(","))
+                self.goal_loc = tuple(map(float, goal_msg.split(" ")))
                 trigger_plan = True
             if trigger_plan:
                 self.plan_path()
                 self.publish_next_step()
                 self.after(0, self.update_image)
 
+    def goal_update(self, goal_msg):
+        self.goal_queue.put(goal_msg.data)
+
+    def loc_update(self, loc_msg):
+        self.loc_queue.put(loc_msg.data)
+
 def main():
-    
     rospy.init_node("planner", anonymous=True)
     root = tk.Tk()
     planner = Planner(master=root, height=MAPHEIGHT, width=MAPWIDTH)
-    planner.loc_queue.put("-12.0, 12.0")
-#    rospy.Subscriber("/goal", ___, planner.goal_update)
+    planner.loc_queue.put("-12.0 12.0")
+    rospy.Subscriber("/endgoal", String, planner.goal_update)
+    rospy.Subscriber("/location", String, planner.loc_update)
     
     t = Timer(0.1, planner.update)
     t.start()
