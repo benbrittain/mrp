@@ -23,8 +23,6 @@ from Utils import gcs2map, map2gcs, PriorityQueue
 
 MAPWIDTH = 2000
 MAPHEIGHT = 700
-PARTICLE_COUNT = 200
-
 PIXELSIZE = 0.06346
 
 def manhattan(a, b):
@@ -83,13 +81,11 @@ class Planner(tk.Frame):
         # goal coordinates
         self.goal_queue = Queue.LifoQueue()
 
-        self.draw_path = []
+        self.draw_path = [] #TODO no reason for two, clean up
         self.path = []
 
-        # TODO clean up
-        self.curr_loc = (0.0,0.0)
-        self.goal_loc = (-14.0,12.0)
-        self.goal_loc = (8.0,-0.5)
+        self.curr_loc = None
+        self.goal_loc = None
 
         # rospy stuff
         self.goal_pub = rospy.Publisher('/goal', String, queue_size=1)
@@ -107,34 +103,42 @@ class Planner(tk.Frame):
             return msg
 
     def plan_path(self):
-        print("Planning new path")
-        self.draw_path = [] #clear
-        self.path = [] #clear
+        if self.goal_loc == None:
+            print("No Goal Location set!")
+        elif self.curr_loc == None:
+            print("No Known Location!")
+        else:
+            print("Planning new path")
+            self.draw_path = [] #clear
+            self.path = [] #clear
 
-        map_curr_loc = gcs2map(*self.curr_loc)
-        map_goal_loc = gcs2map(*self.goal_loc)
-        came_from, cost_so_far = a_star(self.mappix, map_curr_loc, map_goal_loc)
-        current = map_goal_loc
-        path = [current]
-        while current != map_curr_loc:
-            current = came_from[current]
-            path.append(current)
-        path.reverse()
-        self.draw_path = path
-        self.path = map(lambda x: map2gcs(*x), path)
+            map_curr_loc = gcs2map(*self.curr_loc)
+            map_goal_loc = gcs2map(*self.goal_loc)
+            came_from, cost_so_far = a_star(self.mappix, map_curr_loc, map_goal_loc)
+            current = map_goal_loc
+            path = [current]
+            while current != map_curr_loc:
+                current = came_from[current]
+                path.append(current)
+            path.reverse()
+            self.draw_path = path
+            self.path = map(lambda x: map2gcs(*x), path)
 
     def update_image(self):
         # draw the path on the map
-        (curr_x, curr_y) = gcs2map(*self.curr_loc)
-        (goal_x, goal_y) = gcs2map(*self.goal_loc)
+        
+        if self.goal_loc != None:
+            (goal_x, goal_y) = gcs2map(*self.goal_loc)
+            for add_x in range(-3, 3):
+                for add_y in range(-3, 3):
+                    self.mappix[goal_x + add_x, goal_y + add_y] = (255, 0, 0)
 
-        for add_x in range(-3, 3):
-            for add_y in range(-3, 3):
-                self.mappix[curr_x + add_x, curr_y + add_y] = (0, 255, 0)
 
-        for add_x in range(-3, 3):
-            for add_y in range(-3, 3):
-                self.mappix[goal_x + add_x, goal_y + add_y] = (255, 0, 0)
+        if self.curr_loc != None:
+            (curr_x, curr_y) = gcs2map(*self.curr_loc)
+            for add_x in range(-3, 3):
+                for add_y in range(-3, 3):
+                    self.mappix[curr_x + add_x, curr_y + add_y] = (0, 255, 0)
 
         for (step_x, step_y) in self.draw_path:
             for add_x in range(-1, 1):
@@ -148,8 +152,9 @@ class Planner(tk.Frame):
         self.mappix = self.themap.load()
 
     def publish_next_step(self):
-        goal_str = "%f %f" %self.path[0]
-        self.goal_pub.publish(goal_str)
+        if len(self.path) > 0:
+            goal_str = "%f %f" %self.path[0]
+            self.goal_pub.publish(goal_str)
 
     def update(self):
         while True:
@@ -177,7 +182,6 @@ def main():
     rospy.init_node("planner", anonymous=True)
     root = tk.Tk()
     planner = Planner(master=root, height=MAPHEIGHT, width=MAPWIDTH)
-    planner.loc_queue.put("-12.0 12.0")
     rospy.Subscriber("/endgoal", String, planner.goal_update)
     rospy.Subscriber("/location", String, planner.loc_update)
     
