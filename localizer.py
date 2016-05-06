@@ -204,9 +204,10 @@ class Localizer(tk.Frame):
             print("Time taken %d seconds"%(end_time -start_time))
 
             centroid = self.converged_loc(strategy="centroid")
-            if centroid != None:
+            if centroid is not None:
                 print 'Converged !'
-                goal_str = "%f %f" %centroid
+                median_angle = math.radians(np.median([p.theta for p in self.particles]))
+                goal_str = '{0} {1} {2}'.format(centroid[0], centroid[1], median_angle)
                 self.goal_pub.publish(goal_str)
 
             self.remove_dead_particles()
