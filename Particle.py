@@ -2,9 +2,8 @@ import math
 from Utils import *
 import numpy as np
 
-SCATTER_SPREAD = 0.8
-SMALL_NOISE = 0.2
-ANGLE_NOISE = 3
+SCATTER_SPREAD = 0.5
+ANGLE_NOISE = 10.0
 
 class Particle:
     def __init__(self, x, y, theta=None, p=0.0005):
@@ -27,12 +26,12 @@ class Particle:
         return self.to_string()
 
     @staticmethod
-    def particles_around_point(particles_per_ladmark, landmarks, map, maintain_start_angle=False):
+    def particles_around_point(particles_per_ladmark, landmarks, map, maintain_start_angle=True):
         p = []
         while len(p) != particles_per_ladmark:
-            x = landmarks[0] + random.uniform(-SCATTER_SPREAD, SCATTER_SPREAD)
-            y = landmarks[1] + random.uniform(-SCATTER_SPREAD, SCATTER_SPREAD)
-            theta = landmarks[2] + random.uniform(-ANGLE_NOISE, ANGLE_NOISE) if maintain_start_angle else None
+            x = landmarks[0] + np.random.normal(0.0, SCATTER_SPREAD)
+            y = landmarks[1] + np.random.normal(0.0, SCATTER_SPREAD)
+            theta = landmarks[2] + np.random.normal(0.0, ANGLE_NOISE) if maintain_start_angle else None
 
             if is_free_gcs(x, y, map):
                 p.append(Particle(x, y, theta, p=1.0/(particles_per_ladmark * len(landmarks))))
@@ -91,7 +90,8 @@ class Particle:
 
     def clone(self, map, with_noise=True):
         for _ in range(100):
-            dtheta = self.theta + random.uniform(-ANGLE_NOISE, ANGLE_NOISE) if with_noise else 0
+            dtheta = self.theta + np.random.normal(0.0, 5) if with_noise else 0
+            dtheta = ((dtheta + 180) % 360.0) - 180.0
             dx = self.x + np.random.normal(0.0, 0.3) if with_noise else 0
             dy = self.y + np.random.normal(0.0, 0.3) if with_noise else 0
             if is_free_gcs(dx, dy, map):
