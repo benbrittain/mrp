@@ -24,11 +24,28 @@ from Utils import gcs2map, map2gcs, PriorityQueue
 MAPWIDTH = 2000
 MAPHEIGHT = 700
 PIXELSIZE = 0.06346
+SCALE = 0.25
+
+def map2scale(x, y):
+    return(int(SCALE * x), int(SCALE * y))
+
+def scale2map(x, y):
+    return((x / SCALE, y / SCALE))
 
 def manhattan(a, b):
     (x1, y1) = a
     (x2, y2) = b
     return abs(x1 - x2) + abs(y1 - y2)
+
+# expensive but biases toward the center of hallways
+# range is 1 (nothing) - 4
+def wall_dist_cost(themap, (x, y)):
+    for r in range(1, 4):
+        adj = [(x+r, y+r), (x-r, y-r), (x-r, y+r), (x+r, y-r)]
+        for (ax, ay) in adj:
+            if themap[ax, ay] != (255, 255, 255):
+                return (5 - r)
+    return 1
 
 def a_star(themap, start, goal):
     frontier = PriorityQueue()
@@ -44,7 +61,7 @@ def a_star(themap, start, goal):
             break
         
         for n in neighbors(themap, current):
-            new_cost = cost_so_far[current] + 1 # replace 1 with cost of transition
+            new_cost = cost_so_far[current] + wall_dist_cost(themap, current)
             if n not in cost_so_far or new_cost < cost_so_far[n]:
                 cost_so_far[n] = new_cost
                 priority = new_cost + manhattan(goal, n)
@@ -57,13 +74,13 @@ def neighbors(themap, (x, y)):
     adj = [(x+1, y), (x, y-1), (x-1, y), (x, y+1)]
     adj = filter(lambda (x, y): x > 0 and x < MAPWIDTH, adj)
     adj = filter(lambda (x, y): y > 0 and y < MAPHEIGHT, adj)
-    adj = filter(lambda (x, y): (themap[x,y] != (0, 0, 0)), adj)
+    adj = filter(lambda (x, y): (themap[x,y] == (255, 255, 255)), adj)
     return adj
 
 class Planner(tk.Frame):    
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
-        self.master.title("localizer")
+        self.master.title("planner")
         self.master.minsize(width=MAPWIDTH,height=MAPHEIGHT)
         self.canvas = tk.Canvas(self,width=MAPWIDTH, height=MAPHEIGHT)
         self.canvas.pack()
@@ -71,6 +88,10 @@ class Planner(tk.Frame):
         self.themap = Image.open("/home/stu9/s4/bwb5381/project.png")
         self.themap = self.themap.convert("RGB")
         self.mappix = self.themap.load()
+
+        self.scalemap = self.themap.resize(map(lambda x: int(SCALE * x), 
+                    self.themap.size), Image.BICUBIC)
+        self.scalemappix = self.scalemap.load()
 
         self.mapimage = ImageTk.PhotoImage(self.themap)
         self.canvas.create_image(MAPWIDTH/2, MAPHEIGHT/2, image = self.mapimage)
@@ -113,9 +134,9 @@ class Planner(tk.Frame):
             self.draw_path = [] #clear
             self.path = [] #clear
 
-            map_curr_loc = gcs2map(*self.curr_loc)
-            map_goal_loc = gcs2map(*self.goal_loc)
-            came_from, cost_so_far = a_star(self.mappix, map_curr_loc, map_goal_loc)
+            map_curr_loc = map2scale(*gcs2map(*self.curr_loc))
+            map_goal_loc = map2scale(*gcs2map(*self.goal_loc))
+            came_from, cost_so_far = a_star(self.scalemappix, map_curr_loc, map_goal_loc)
             current = map_goal_loc
             path = [current]
             while current != map_curr_loc:
@@ -127,17 +148,16 @@ class Planner(tk.Frame):
                     break
             path.reverse()
             self.draw_path = path
-            self.path = map(lambda x: map2gcs(*x), path)
+            self.draw_path = map(lambda x: scale2map(*x), path)
+            self.path = map(lambda x: map2gcs(*scale2map(*x)), path)
 
     def update_image(self):
         # draw the path on the map
-        
         if self.goal_loc != None:
             (goal_x, goal_y) = gcs2map(*self.goal_loc)
             for add_x in range(-3, 3):
                 for add_y in range(-3, 3):
                     self.mappix[goal_x + add_x, goal_y + add_y] = (255, 0, 0)
-
 
         if self.curr_loc != None:
             (curr_x, curr_y) = gcs2map(*self.curr_loc)
@@ -154,6 +174,8 @@ class Planner(tk.Frame):
         self.canvas.create_image(MAPWIDTH/2, MAPHEIGHT/2, image = self.mapimage)
         self.themap = Image.open("/home/stu9/s4/bwb5381/project.png")
         self.themap = self.themap.convert("RGB")
+        #self.scalemap = self.themap.resize(map(lambda x: int(SCALE * x), 
+        #            self.themap.size), Image.ANTIALIAS)
         self.mappix = self.themap.load()
 
     def publish_next_step(self):
