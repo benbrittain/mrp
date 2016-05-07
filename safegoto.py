@@ -15,8 +15,7 @@ from sensor_msgs.msg import LaserScan
 
 from p2os_msgs.msg import SonarArray
 from p2os_msgs.msg import MotorState
-
-import string
+from std_msgs.msg import String
 
 import numpy as np
 from math import atan2
@@ -54,8 +53,8 @@ class Navigator(object):
             self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10, latch = True)
             
             #### Final project code
-            rospy.Subscriber("/goal", string, self.update_goal)
-            rospy.Subscriber("/localized_pos", string, self.update_localized_pose)
+            rospy.Subscriber("/goal", String, self.update_goal)
+            rospy.Subscriber("/localized_pos", String, self.update_localized_pose)
         elif run_mode == 'sim':
             print('In simulator mode')
             rospy.Subscriber('/r1/odom', Odometry, self.update_odometer)
@@ -65,8 +64,8 @@ class Navigator(object):
             self.velocity_publisher = rospy.Publisher('r1/cmd_vel', Twist, queue_size=10, latch = True)
             
             #### Final project code
-            rospy.Subscriber("/goal", string, self.update_goal)
-            rospy.Subscriber("/localized_pos", string, self.update_localized_pose)
+            rospy.Subscriber("/goal", String, self.update_goal)
+            rospy.Subscriber("/localized_pos", String, self.update_localized_pose)
         else:
             print('Invalid Run Mode')
             
@@ -77,10 +76,10 @@ class Navigator(object):
     # Method to get goal information from path planner
     ###################################################  
     def update_goal(self, goal_msg):
-        goal_msg == None:
+        if goal_msg == None:
             return
         
-        coordinates = goal_msg.split()
+        coordinates = goal_msg.data.split()
         
         self.planned_goal = [float(coordinates[0]),float(coordinates[1])]
     
@@ -88,10 +87,10 @@ class Navigator(object):
     # Method to get goal information from localizer
     ###################################################  
     def update_localized_pose(self, localized_pose_msg):
-        localized_pose_msg == None:
+        if localized_pose_msg == None:
             return
         
-        pose = localized_pose_msg.split()
+        pose = localized_pose_msg.data.split()
         self.loz_current_location = [float(pose[0]),float(pose[1])]
         self.loz_yaw = float(pose[2])
         
@@ -355,10 +354,8 @@ class Navigator(object):
     # Method to navigate the robot through given points  
     #######################################################          
     def navigate(self):
-        
-        
-        self.location_file = location_file
-        self.load_locations()
+        #self.location_file = location_file
+        #self.load_locations()
         
         so_many_sec = 0.0
         print ("Started navigating\n")
@@ -375,8 +372,7 @@ class Navigator(object):
         start_time = rospy.get_time()
         publish_rate = rospy.Rate(10) 
        
-        while delta_dist >0.2: # position accurate within  20 cm
-            
+        while delta_dist > 0.01: # position accurate within  20 cm
             linear_velocity_vector = self.give_linear_velocity(delta_dist)
             angular_velocity_vector = self.give_angular_velocity(dYaw)
     
@@ -426,7 +422,7 @@ class Navigator(object):
 ###############
 if __name__ == '__main__':
     # validate input arguments
-    if len(sys.argv) !=3:
+    if len(sys.argv) !=1:
         print "Usage:  rosrun abg_pkg goto.py <location_file> <run_mode: sim / hw>"
     else:    
         try:

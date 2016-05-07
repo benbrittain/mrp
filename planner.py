@@ -80,6 +80,7 @@ class Planner(tk.Frame):
         self.loc_queue = Queue.LifoQueue()
         # goal coordinates
         self.goal_queue = Queue.LifoQueue()
+        self.goal_queue.put("-18.0 -9.0")
 
         self.draw_path = [] #TODO no reason for two, clean up
         self.path = []
@@ -118,8 +119,12 @@ class Planner(tk.Frame):
             current = map_goal_loc
             path = [current]
             while current != map_curr_loc:
-                current = came_from[current]
-                path.append(current)
+                try:
+                    current = came_from[current]
+                    path.append(current)
+                except KeyError:
+                    print("wat. ", current)
+                    break
             path.reverse()
             self.draw_path = path
             self.path = map(lambda x: map2gcs(*x), path)
@@ -162,10 +167,10 @@ class Planner(tk.Frame):
             loc_msg = self.get_queue(self.loc_queue)
             goal_msg = self.get_queue(self.goal_queue)
             if loc_msg != None:
-                self.curr_loc = tuple(map(float, loc_msg.split(" ")))
+                self.curr_loc = tuple(map(float, loc_msg.split(" ")))[:2]
                 trigger_plan = True
             if goal_msg != None:
-                self.goal_loc = tuple(map(float, goal_msg.split(" ")))
+                self.goal_loc = tuple(map(float, goal_msg.split(" ")))[:2]
                 trigger_plan = True
             if trigger_plan:
                 self.plan_path()
@@ -183,7 +188,7 @@ def main():
     root = tk.Tk()
     planner = Planner(master=root, height=MAPHEIGHT, width=MAPWIDTH)
     rospy.Subscriber("/endgoal", String, planner.goal_update)
-    rospy.Subscriber("/location", String, planner.loc_update)
+    rospy.Subscriber("/localized_pos", String, planner.loc_update)
     
     t = Timer(0.1, planner.update)
     t.start()
