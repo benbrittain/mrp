@@ -63,13 +63,13 @@ class Initializer(object):
             (dx, dy, dtheta) = self.get_movement()
             print("%0.2f | %0.2f"%(self.total_mov, self.total_rot))
             dist = math.sqrt(dx**2 + dy**2)
-            if self.total_mov < LOCAL_DIST_FWD:
-                vel.linear.x = INITIAL_SPEED
-                self.total_mov += dist
+            if self.total_rot < LOCAL_DIST_ROT:
+                vel.angular.z = INITIAL_SPEED
+                self.total_rot += abs(dtheta)
             else:
-                if self.total_rot < LOCAL_DIST_ROT:
-                    vel.angular.z = INITIAL_SPEED
-                    self.total_rot += abs(dtheta)
+                if self.total_mov < LOCAL_DIST_FWD:
+                    vel.linear.x = INITIAL_SPEED
+                    self.total_mov += dist
                 else:
                     # reset for more info gathering
                     self.total_mov = 0.0
