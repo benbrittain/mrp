@@ -36,11 +36,11 @@ from math import atan2
 ########################################
 class Navigator(object):
     def __init__(self, run_mode = 'sim'):
-        
         rospy.init_node('navigator', anonymous=True)
         self.motor_publisher = rospy.Publisher("cmd_motor_state", MotorState,queue_size=10,latch = True)
         self.motor_publisher.publish(MotorState(1))
         
+        self.loc_pub = rospy.Publisher('/guessed_pos', String, queue_size=1)
         
         self.last_planned_goal = None
         self.planned_goal = None
@@ -96,7 +96,7 @@ class Navigator(object):
             return
         
         pose = localized_pose_msg.data.split()
-        self.loz_current_location = np.array([float(pose[0]),float(pose[1])])- np.array(self.current_location)
+        self.loz_current_location = np.array([float(pose[0]),float(pose[1])]) 
         self.loz_yaw = float(pose[2]) - self.yaw
         self.is_new_localizer_pos = True
         
@@ -132,13 +132,13 @@ class Navigator(object):
         loc = odometry_msg.pose.pose.position
         
         #self.current_location = [loc.x,loc.y]
-        self.current_location = np.array([loc.x,loc.y])+np.array(self.loz_current_location)
+        #self.current_location = np.array([loc.x,loc.y])+np.array(self.loz_current_location)
         
-        rotate_x = self.current_location[0]*np.cos(self.loz_yaw) - self.current_location[1]*np.sin(self.loz_yaw)
+        rotate_x = loc.x * np.cos(self.loz_yaw) - loc.y * np.sin(self.loz_yaw) + self.loz_current_location[0]
+        rotate_y = loc.x * np.sin(self.loz_yaw) + loc.y * np.cos(self.loz_yaw) + self.loz_current_location[1]
         #x sin theta + y cos theta
-        rotate_y = self.current_location[0]*np.sin(self.loz_yaw) + self.current_location[1]*np.cos(self.loz_yaw)
         
-        self.current_location np.array([rotate_x,rotate_y])
+        self.current_location = np.array([rotate_x,rotate_y])
         self.current_velocity = odometry_msg.twist.twist.linear.x
         
         q = odometry_msg.pose.pose.orientation
@@ -277,9 +277,6 @@ class Navigator(object):
         
         yaw = self.yaw
         #yaw = self.loz_yaw 
-        
-        
-        
         # get repulsive obstacle field vector
         o_bar = self.calculate_obstacle_potential_field()
         # get attractive goal field vector
@@ -330,7 +327,6 @@ class Navigator(object):
         msg = self.odometry_msg 
         pos = msg.pose.pose.position
         
-       
         x = pos.x
         y = pos.y
         #x =  self.loz_current_location[0]
@@ -368,9 +364,6 @@ class Navigator(object):
     # Method to navigate the robot through given points  
     #######################################################          
     def navigate(self):
-        #self.location_file = location_file
-        #self.load_locations()
-        
         so_many_sec = 0.0
         print ("Started navigating\n")
         
@@ -382,7 +375,6 @@ class Navigator(object):
             print("Waiting for path planner")
             wait = True
        
-        #self.next_goal = goal
         time.sleep(3)
         self.next_goal = self.planned_goal
         
@@ -392,7 +384,11 @@ class Navigator(object):
         start_time = rospy.get_time()
         publish_rate = rospy.Rate(10) 
         
-        while delta_dist > 0.01: # position accurate within  20 cm
+        while True: # position accurate within  20 cm
+            self.next_goal = self.planned_goal
+            loc_str = "%f %f" %tuple(self.current_location)
+            self.loc_pub.publish(loc_str)
+            
             print("Current Loc; ",self.current_location,"Current yaw: ",self.yaw)
             print("Go to; ", self.next_goal)
             #time.sleep(0.2)
@@ -417,30 +413,6 @@ class Navigator(object):
             
             publish_rate.sleep()
              
-        end_time = rospy.get_time()
-        so_many_sec += (end_time-start_time)    
-        self.velocity_publisher.publish(Twist())
-        
-        print ('Reached : '+str(self.next_goal))
-        print ('Actual Location [x,y]: '+str(self.current_location))
-        print ('Time taken '+str(end_time -start_time)+ ' seconds\n')
-        time.sleep(2)
-        
-        self.last_planned_goal = self.next_goal
-        while self.planned_goal == self.last_planned_goal:
-            print("Waiting for new goal")
-            wait = True 
-       
-        self.navigate()
-            
-        print('\nStopped navigating')
-        print('Reached Final Goal')
-        print('Total Time: '+str(so_many_sec)+ ' seconds')
-
-
-
-        
-   
 ###############
 # main program
 ###############
