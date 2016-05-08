@@ -96,8 +96,8 @@ class Navigator(object):
             return
         
         pose = localized_pose_msg.data.split()
-        self.loz_current_location = [float(pose[0]),float(pose[1])]
-        self.loz_yaw = float(pose[2])
+        self.loz_current_location = np.array([float(pose[0]),float(pose[1])])- np.array(self.current_location)
+        self.loz_yaw = float(pose[2]) - self.yaw
         self.is_new_localizer_pos = True
         
         
