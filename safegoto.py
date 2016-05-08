@@ -346,8 +346,8 @@ class Navigator(object):
         if delta_dist > 2:
              x_vel =  0.5
         
-        if self.laser_ranges.size != 0 or self.sonar_ranges.size != 0:
-            x_vel = 0.1
+        #if self.laser_ranges.size != 0 or self.sonar_ranges.size != 0:
+        #    x_vel = 0.1
              
         return Vector3(x_vel,0.0,0.0)
            

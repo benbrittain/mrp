@@ -103,7 +103,7 @@ class Planner(tk.Frame):
         self.guessed_loc_queue = Queue.LifoQueue()
         # goal coordinates
         self.goal_queue = Queue.LifoQueue()
-        self.goal_queue.put("-18.0 -9.0")
+        #self.goal_queue.put("-18.0 -9.0")
 
         self.draw_path = [] #TODO no reason for two, clean up
         self.path = []
@@ -199,7 +199,6 @@ class Planner(tk.Frame):
                 guessed_loc = tuple(map(float, guessed_loc_msg.split(" ")))[:2]
                 dist_to_step = manhattan(guessed_loc, self.step)
                 if dist_to_step < 1:
-                    print(dist_to_step)
                     self.curr_loc = guessed_loc
                     trigger_plan = True
 
