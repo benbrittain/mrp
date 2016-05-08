@@ -368,7 +368,7 @@ class Navigator(object):
         so_many_sec = 0.0
         print ("Started navigating\n")
         
-        while !self.is_new_localizer_pos:
+        while not self.is_new_localizer_pos:
             print("Waiting for localizer")
             wait = True
             
@@ -387,7 +387,7 @@ class Navigator(object):
         publish_rate = rospy.Rate(10) 
         
         while delta_dist > 0.01: # position accurate within  20 cm
-            print("Current Loc; ",self.current_location,"Current yaw: "+self.yaw)
+            print("Current Loc; ",self.current_location,"Current yaw: ",self.yaw)
             linear_velocity_vector = self.give_linear_velocity(delta_dist)
             angular_velocity_vector = self.give_angular_velocity(dYaw)
     
@@ -399,7 +399,7 @@ class Navigator(object):
             # this ensures that robot keeps moving forward when obstructed, in bug like 
             # fashion without using any memory. Inefficient but works.
             if  math.fabs(dYaw) > 0.3: #0.3
-                linear_velocity_vector = Vector3(0.2,0.0,0.0)
+                linear_velocity_vector = Vector3(0.0,0.0,0.0)
             
             twist = Twist( linear_velocity_vector,angular_velocity_vector)
             self.velocity_publisher.publish(twist)
