@@ -389,7 +389,7 @@ class Navigator(object):
         while delta_dist > 0.01: # position accurate within  20 cm
             print("Current Loc; ",self.current_location,"Current yaw: ",self.yaw)
             print("Go to; ", self.next_goal)
-            time.sleep(0.2)
+            #time.sleep(0.2)
             linear_velocity_vector = self.give_linear_velocity(delta_dist)
             angular_velocity_vector = self.give_angular_velocity(dYaw)
     
@@ -401,7 +401,7 @@ class Navigator(object):
             # this ensures that robot keeps moving forward when obstructed, in bug like 
             # fashion without using any memory. Inefficient but works.
             if  math.fabs(dYaw) > 0.3: #0.3
-                linear_velocity_vector = Vector3(0.0,0.0,0.0)
+                linear_velocity_vector = Vector3(0.01,0.0,0.0)
             
             twist = Twist( linear_velocity_vector,angular_velocity_vector)
             self.velocity_publisher.publish(twist)
