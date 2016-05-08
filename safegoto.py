@@ -253,8 +253,8 @@ class Navigator(object):
         k_g = 250
         
         next_goal = self.next_goal
-        #current_loc = self.current_location
-        current_loc = self.loz_current_location
+        current_loc = self.current_location
+        #current_loc = self.loz_current_location
         d = self.get_euclidian_distance(next_goal, current_loc)
         
         next_goal = np.array(next_goal)
@@ -388,6 +388,8 @@ class Navigator(object):
         
         while delta_dist > 0.01: # position accurate within  20 cm
             print("Current Loc; ",self.current_location,"Current yaw: ",self.yaw)
+            print("Go to; ", self.next_goal)
+            time.sleep(0.2)
             linear_velocity_vector = self.give_linear_velocity(delta_dist)
             angular_velocity_vector = self.give_angular_velocity(dYaw)
     
