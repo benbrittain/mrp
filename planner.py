@@ -96,9 +96,11 @@ class Planner(tk.Frame):
         self.mapimage = ImageTk.PhotoImage(self.themap)
         self.canvas.create_image(MAPWIDTH/2, MAPHEIGHT/2, image = self.mapimage)
         self.pack()
+        self.step = (0,0)
 
         # localized coordinates queue
         self.loc_queue = Queue.LifoQueue()
+        self.guessed_loc_queue = Queue.LifoQueue()
         # goal coordinates
         self.goal_queue = Queue.LifoQueue()
         self.goal_queue.put("-18.0 -9.0")
@@ -174,13 +176,16 @@ class Planner(tk.Frame):
         self.canvas.create_image(MAPWIDTH/2, MAPHEIGHT/2, image = self.mapimage)
         self.themap = Image.open("/home/stu9/s4/bwb5381/project.png")
         self.themap = self.themap.convert("RGB")
-        #self.scalemap = self.themap.resize(map(lambda x: int(SCALE * x), 
-        #            self.themap.size), Image.ANTIALIAS)
         self.mappix = self.themap.load()
 
     def publish_next_step(self):
         if len(self.path) > 0:
-            goal_str = "%f %f" %self.path[0]
+            if len(self.path) > 15:
+                self.step = self.path[14]
+            else:
+                self.step = self.path[-1]
+            goal_str = "%f %f" %self.step
+            print("going to %f %f"%self.step)
             self.goal_pub.publish(goal_str)
 
     def update(self):
@@ -188,12 +193,23 @@ class Planner(tk.Frame):
             trigger_plan = False
             loc_msg = self.get_queue(self.loc_queue)
             goal_msg = self.get_queue(self.goal_queue)
+
+            guessed_loc_msg = self.get_queue(self.guessed_loc_queue)
+            if guessed_loc_msg != None:
+                guessed_loc = tuple(map(float, guessed_loc_msg.split(" ")))[:2]
+                dist_to_step = manhattan(guessed_loc, self.step)
+                if dist_to_step < 1:
+                    print(dist_to_step)
+                    self.curr_loc = guessed_loc
+                    trigger_plan = True
+
             if loc_msg != None:
                 self.curr_loc = tuple(map(float, loc_msg.split(" ")))[:2]
                 trigger_plan = True
             if goal_msg != None:
                 self.goal_loc = tuple(map(float, goal_msg.split(" ")))[:2]
                 trigger_plan = True
+
             if trigger_plan:
                 self.plan_path()
                 self.publish_next_step()
@@ -205,12 +221,16 @@ class Planner(tk.Frame):
     def loc_update(self, loc_msg):
         self.loc_queue.put(loc_msg.data)
 
+    def guessed_loc_update(self, loc_msg):
+        self.guessed_loc_queue.put(loc_msg.data)
+
 def main():
     rospy.init_node("planner", anonymous=True)
     root = tk.Tk()
     planner = Planner(master=root, height=MAPHEIGHT, width=MAPWIDTH)
     rospy.Subscriber("/endgoal", String, planner.goal_update)
     rospy.Subscriber("/localized_pos", String, planner.loc_update)
+    rospy.Subscriber("/guessed_pos", String, planner.guessed_loc_update)
     
     t = Timer(0.1, planner.update)
     t.start()
