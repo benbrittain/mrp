@@ -144,12 +144,12 @@ class Navigator(object):
         q = odometry_msg.pose.pose.orientation
         
         # get robot's orientation w.r.t. z axis
-        yaw = 2*math.atan2(q.z,q.w)
+        yaw = 2*math.atan2(q.z,q.w) + self.loz_yaw
         # maps it to [0,2*pi] 
         if yaw < 0:
             yaw += 2.0*math.pi
         #self.yaw = yaw 
-        self.yaw = yaw +self.loz_yaw
+        self.yaw = yaw 
         
         
     #######################################################################
