@@ -204,7 +204,7 @@ class Localizer(tk.Frame):
 
             centroid = self.converged_loc(strategy="centroid")
             if centroid is not None:
-                median_angle = math.radians(np.median([p.theta for p in self.particles]))
+                median_angle = math.radians(np.median([p.theta for p in self.particles])) % (2.0 * math.pi)
                 print("Converged at <%0.2f,%0.2f>@%0.2f"%(centroid[0], centroid[1], median_angle))
                 goal_str = '{0} {1} {2}'.format(centroid[0], centroid[1], median_angle)
                 self.goal_pub.publish(goal_str)
@@ -231,11 +231,19 @@ class Localizer(tk.Frame):
 
     def converged_loc(self, strategy="centroid"):
         if strategy == "centroid":
-            coords = np.asarray([(p.x, p.y) for p in self.particles])
+            coords = np.asarray([(p.x, p.y, p.theta) for p in self.particles])
             sum_x = np.sum(coords[:, 0])
             sum_y = np.sum(coords[:, 1])
-            centroid = 1.0 * sum_x / len(coords), 1.0 * sum_y / len(coords)
-            particles_near_centroid = len([1 for p in self.particles if p.gcs_get_distance_to(*centroid) < 1])
+            sum_z = np.sum(coords[:, 2])
+
+            min_a = min([p.theta % 360 for p in self.particles])
+            max_a = max([p.theta % 360 for p in self.particles])
+            median_angle = np.median([p.theta for p in self.particles]) % 360
+
+            print("min angle %0.2f, max angle %0.2f, med angle %0.2f"%(min_a, max_a, median_angle))
+
+            centroid = sum_x / len(coords), sum_y / len(coords), sum_z / len(coords)
+            particles_near_centroid = len([1 for p in self.particles if p.d3_get_distance_to(*centroid) < 0.75])
 
             if particles_near_centroid > CENTROID_THRESHOLD:
                 return centroid

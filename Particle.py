@@ -88,9 +88,13 @@ class Particle:
     def gcs_get_distance_to(self, j, k):
         return math.sqrt((self.x - j) ** 2 + (self.y - k) ** 2)
 
+    def d3_get_distance_to(self, j, k, l):
+        theta_diff = ((l - self.theta) + 180.0 % 360) - 180.0
+        return math.sqrt((self.x - j) ** 2 + (self.y - k) ** 2 + (theta_diff ** 2))
+
     def clone(self, map, with_noise=True):
         for _ in range(100):
-            dtheta = self.theta + np.random.normal(0.0, 5) if with_noise else 0
+            dtheta = self.theta + np.random.normal(0.0, 0.5) if with_noise else 0
             dtheta = ((dtheta + 180) % 360.0) - 180.0
             dx = self.x + np.random.normal(0.0, 0.3) if with_noise else 0
             dy = self.y + np.random.normal(0.0, 0.3) if with_noise else 0

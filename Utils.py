@@ -13,40 +13,14 @@ LASER_MAX_RANGE = 10
 LASER_SCAN_ANGLE_INCREMENT = 10
 TOTAL_PARTICLES = 1200
 PARTICLES_PER_LANDMARK = TOTAL_PARTICLES / 6
+
 THRESHOLD = 1.0/(TOTAL_PARTICLES * 1.3)
+UPPER_THRESHOLD = 1.0/(TOTAL_PARTICLES * 0.7)
+
 CENTROID_THRESHOLD = TOTAL_PARTICLES * 0.75  # %
 RESAMPLE_THRESHOLD = TOTAL_PARTICLES * 0.80  # %
 BOUNDING_BOX_AREA_CONVERGENCE = 4            # bounding box with area 4m^2 is considered converged
 
-
-# FAILED PARALELIZATION ATTEMPT, PYTHON TAKES TOO LONG TO SPIN UP SUBPROCESSES
-# and pool which would keep them alive can't work with things not in top of a module
-# and I don't want to have write a massive parallelization library or import extra
-# stuff
-#def fun(f, q_in, q_out):
-#    while True:
-#        i, x = q_in.get()
-#        if i is None:
-#            break
-#        q_out.put((i, f(x)))
-#
-#def parmap(f, X, nprocs=2):
-#    q_in = multiprocessing.Queue(1)
-#    q_out = multiprocessing.Queue()
-#
-#    proc = [multiprocessing.Process(target=fun, args=(f, q_in, q_out))
-#            for _ in range(nprocs)]
-#    for p in proc:
-#        p.daemon = True
-#        p.start()
-#
-#    sent = [q_in.put((i, x)) for i, x in enumerate(X)]
-#    [q_in.put((None, None)) for _ in range(nprocs)]
-#    res = [q_out.get() for _ in range(len(sent))]
-#
-#    [p.join() for p in proc]
-#
-#    return [x for i, x in sorted(res)]
 
 class PriorityQueue:
     def __init__(self):
