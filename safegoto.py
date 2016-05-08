@@ -45,6 +45,9 @@ class Navigator(object):
         self.last_planned_goal = None
         self.planned_goal = None
         
+        self.loz_current_location = None
+        self.loz_yaw = None
+        
         if run_mode == 'hw':
             print('In hardware mode')
             rospy.Subscriber('/pose', Odometry, self.update_odometer)
@@ -76,7 +79,7 @@ class Navigator(object):
     # Method to get goal information from path planner
     ###################################################  
     def update_goal(self, goal_msg):
-        if goal_msg == None:
+        if goal_msg is None:
             return
         
         coordinates = goal_msg.data.split()
@@ -88,6 +91,7 @@ class Navigator(object):
     ###################################################  
     def update_localized_pose(self, localized_pose_msg):
         if localized_pose_msg == None:
+            print("No pose from localizer")
             return
         
         pose = localized_pose_msg.data.split()
@@ -360,7 +364,11 @@ class Navigator(object):
         so_many_sec = 0.0
         print ("Started navigating\n")
         
-        while self.planned_goal == None:
+        while self.loz_current_location is None or self.loz_yaw  is None:
+             print("Waiting for localizer")
+            wait = True
+        while self.planned_goal is None:
+            print("Waiting for path planner")
             wait = True
        
         #self.next_goal = goal
@@ -405,6 +413,7 @@ class Navigator(object):
         
         self.last_planned_goal = self.next_goal
         while self.planned_goal == self.last_planned_goal:
+            print("Waiting for new goal")
             wait = True 
        
         self.navigate()
