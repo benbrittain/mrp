@@ -45,8 +45,9 @@ class Navigator(object):
         self.last_planned_goal = None
         self.planned_goal = None
         
-        self.loz_current_location = None
-        self.loz_yaw = None
+        self.is_new_localizer_pos = False
+        self.loz_current_location = [0.0,0.0]
+        self.loz_yaw = 0.0
         
         if run_mode == 'hw':
             print('In hardware mode')
@@ -97,6 +98,7 @@ class Navigator(object):
         pose = localized_pose_msg.data.split()
         self.loz_current_location = [float(pose[0]),float(pose[1])]
         self.loz_yaw = float(pose[2])
+        self.is_new_localizer_pos = True
         
         
     ###########################################
@@ -129,7 +131,8 @@ class Navigator(object):
         self.odometry_msg =odometry_msg
         loc = odometry_msg.pose.pose.position
         
-        self.current_location = [loc.x,loc.y]
+        #self.current_location = [loc.x,loc.y]
+        self.current_location = np.array([loc.x,loc.y])+np.array(self.loz_current_location)
         self.current_velocity = odometry_msg.twist.twist.linear.x
         
         q = odometry_msg.pose.pose.orientation
@@ -139,7 +142,8 @@ class Navigator(object):
         # maps it to [0,2*pi] 
         if yaw < 0:
             yaw += 2.0*math.pi
-        self.yaw = yaw
+        #self.yaw = yaw 
+        self.yaw = yaw +self.loz_yaw
         
         
     #######################################################################
@@ -227,8 +231,8 @@ class Navigator(object):
     ###################################################################
     def get_potential_field(self,sensor_range_data, k):
         
-        #yaw = self.yaw
-        yaw = self.loz_yaw 
+        yaw = self.yaw
+        #yaw = self.loz_yaw 
         so_many_rows = sensor_range_data.shape[1]
         raw_data = np.column_stack((sensor_range_data.T, 
                                     np.zeros(so_many_rows),np.zeros(so_many_rows)))
@@ -265,8 +269,8 @@ class Navigator(object):
     ###########################################################################    
     def get_dYaw(self):
         
-        #yaw = self.yaw
-        yaw = self.loz_yaw 
+        yaw = self.yaw
+        #yaw = self.loz_yaw 
         
         
         
@@ -321,10 +325,10 @@ class Navigator(object):
         pos = msg.pose.pose.position
         
        
-        #x = pos.x
-        #y = pos.y
-        x =  self.loz_current_location[0]
-        y =  self.loz_current_location[1]
+        x = pos.x
+        y = pos.y
+        #x =  self.loz_current_location[0]
+        #y =  self.loz_current_location[1]
         
         return self.get_euclidian_distance(self.next_goal,[x,y])
     
@@ -364,14 +368,16 @@ class Navigator(object):
         so_many_sec = 0.0
         print ("Started navigating\n")
         
-        while self.loz_current_location is None or self.loz_yaw  is None:
-             print("Waiting for localizer")
+        while !self.is_new_localizer_pos:
+            print("Waiting for localizer")
             wait = True
+            
         while self.planned_goal is None:
             print("Waiting for path planner")
             wait = True
        
         #self.next_goal = goal
+        time.sleep(3)
         self.next_goal = self.planned_goal
         
         dYaw = self.get_dYaw()
@@ -379,8 +385,9 @@ class Navigator(object):
          
         start_time = rospy.get_time()
         publish_rate = rospy.Rate(10) 
-       
+        
         while delta_dist > 0.01: # position accurate within  20 cm
+            print("Current Loc; ",self.current_location,"Current yaw: "+self.yaw)
             linear_velocity_vector = self.give_linear_velocity(delta_dist)
             angular_velocity_vector = self.give_angular_velocity(dYaw)
     
