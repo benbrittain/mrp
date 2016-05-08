@@ -133,6 +133,12 @@ class Navigator(object):
         
         #self.current_location = [loc.x,loc.y]
         self.current_location = np.array([loc.x,loc.y])+np.array(self.loz_current_location)
+        
+        rotate_x = self.current_location[0]*np.cos(self.loz_yaw) - self.current_location[1]*np.sin(self.loz_yaw)
+        #x sin theta + y cos theta
+        rotate_y = self.current_location[0]*np.sin(self.loz_yaw) + self.current_location[1]*np.cos(self.loz_yaw)
+        
+        self.current_location np.array([rotate_x,rotate_y])
         self.current_velocity = odometry_msg.twist.twist.linear.x
         
         q = odometry_msg.pose.pose.orientation
