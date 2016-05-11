@@ -11,7 +11,7 @@ import tf
 import math
 import Queue
 import itertools
-import copy
+import colorsys
 
 from threading import Timer
 from nav_msgs.msg import Odometry
@@ -41,11 +41,15 @@ class Localizer(tk.Frame):
         else:
             self.reset_map()
             for p in self.particles:
-                self.mappix[p.mx, p.my] = 128
+                h = 0.33 * p.p
+                r, g, b = colorsys.hls_to_rgb(h, 127, -1)
+                color = (int(r), int(g), int(b))
+                self.mappix[p.mx, p.my] = color
             self.update_image()
 
     def reset_map(self):
         self.themap = Image.open(self.mapfile, mode='r')
+        self.themap = self.themap.convert("RGB")
         self.mapimage = ImageTk.PhotoImage(self.themap)
         self.mappix = self.themap.load()
         self.update_image()
@@ -56,6 +60,8 @@ class Localizer(tk.Frame):
         self.master.minsize(width=2000, height=700)
         self.mapfile = supplied_map
         self.themap = Image.open(self.mapfile, mode='r')
+        self.themap = self.themap.convert("RGB")
+
         self.mapimage = ImageTk.PhotoImage(self.themap)
         self.mappix = self.themap.load()
         self.canvas = tk.Canvas(self, width=2000, height=700)
@@ -190,9 +196,6 @@ class Localizer(tk.Frame):
                 if p.p != 0:
                     pread = p.sense(self.maparr)
                     p.p *= prob_diff_readings(rread, pread)
-            #self.particles = self.task_pool.map(update_particle,
-            #                    zip(self.particles, itertools.cycle([rread]),
-            #                        itertools.cycle([self.maparr])))
 
             end_time = rospy.get_time()
             print("Time taken %d seconds"%(end_time -start_time))
@@ -291,7 +294,9 @@ def update_particle((p, rread, maparr)):
 def main():
     rospy.init_node("localize", anonymous=True)
     root = tk.Tk()
-    l = Localizer('/home/stu12/s11/mhs1841/catkin_ws/src/hw1/src/scripts/project.png', master=root, height=700, width=2000)
+    #l = Localizer('/home/stu12/s11/mhs1841/catkin_ws/src/hw1/src/scripts/project.png', master=root, height=700, width=2000)
+    # we are bad people
+    l = Localizer('/home/stu9/s4/bwb5381/project.png', master=root, height=700, width=2000)
     rospy.Subscriber("/r1/kinect_laser/scan", LaserScan, l.laser_update)
     rospy.Subscriber("/r1/odom", Odometry, l.odom_update)
     t = Timer(0.1, l.update)

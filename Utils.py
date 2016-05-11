@@ -4,7 +4,9 @@ import math
 import heapq
 import multiprocessing
 from itertools import izip
-
+from PIL import Image
+import numpy as np
+import pickle
 
 WORLD_TO_MAP_SCALE = 15.758
 RAY_MOD = 30
@@ -20,7 +22,11 @@ UPPER_THRESHOLD = 1.0/(TOTAL_PARTICLES * 0.7)
 CENTROID_THRESHOLD = TOTAL_PARTICLES * 0.75  # %
 RESAMPLE_THRESHOLD = TOTAL_PARTICLES * 0.80  # %
 BOUNDING_BOX_AREA_CONVERGENCE = 4            # bounding box with area 4m^2 is considered converged
+MAPWIDTH = 2000
+MAPHEIGHT = 700
 
+global cspace
+cspace = None
 
 class PriorityQueue:
     def __init__(self):
@@ -34,6 +40,64 @@ class PriorityQueue:
 
     def get(self):
         return heapq.heappop(self.elements)[1]
+
+
+def distance_to_obs((mx, my), theta):
+    global cspace
+    if cspace != None:
+        return cspace[mx][my][theta]
+    else:
+        try:
+            cspace = pickle.load(open("cspace.p", "rb"))
+        except IOError:
+            print("No configuration space yet! Calculating...")
+            mapfile = '/home/stu9/s4/bwb5381/project.png'
+            themap = Image.open(mapfile, mode='r')
+            themap = themap.convert("RGB")
+            mappix = themap.load()
+            cspace = dict()
+            for x in range(0, MAPWIDTH):
+                if x not in cspace:
+                    cspace[x] = dict()
+                for y in range(0, MAPHEIGHT):
+                    if y not in cspace[x]:
+                        cspace[x][y] = dict()
+                    for theta in range(0, 360, 2):
+                        print("calculating %d %d %d"%(x, y, theta))
+                        ep = get_endpoint_at_angle(x, y, theta)
+                        scaled_ep = gcs2map(ep[0], ep[1])
+                        bp = bresenham((x, y), scaled_ep)
+                        dist = LASER_MAX_RANGE
+                        for bpx, bpy in bp:
+                            if not is_free_map(bpx, bpy, mappix):
+                                dist = math.sqrt((x - bpx) ** 2 + (y - bpy) ** 2) / WORLD_TO_MAP_SCALE
+                                break
+                        cspace[x][y][theta] = dist
+                        print(dist)
+            pickle.dump(cspace, open("cspace.p", "wb"))
+
+
+
+       #ray_endpts = [get_endpoint_at_angle(self.x, self.y, a) for a in sample_angles]
+        #readings = []
+
+        #for i, ep in enumerate(ray_endpts):
+        #    bp = distance_to_obs((self,mx, self.my), ep)
+
+        #
+        #    #scaled_ep = ep[0] * CELLS_IN_ONE_METRE, ep[1] * CELLS_IN_ONE_METRE
+        #    #bp = bresenham((self.x, self.y), scaled_ep)
+
+        #    scaled_ep = gcs2map(ep[0], ep[1])
+        #    obstacle_found = False
+        #    for bpx, bpy in bp:
+        #        if not is_free_map(bpx, bpy, map):
+        #            obstacle_found = True
+        #            readings.append(self.map_get_distance_to(bpx, bpy))
+        #            break
+        #    if not obstacle_found:
+        #        readings.append(LASER_MAX_RANGE)
+
 
 def bresenham(start, end):
     x1, y1 = start
@@ -93,7 +157,8 @@ def is_free_map(mx, my, map):
 
     # Check in my, mx because traditionally 2D arrays have X going top-down
     # and Y going left-right. But with images/pixels it is vice-versa.
-    return map[my][mx] == 255
+    # Can't be black
+    return(np.any(map[my, mx] != (0, 0, 0)))
 
 def map2gcs(mx, my):
     """

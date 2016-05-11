@@ -63,23 +63,13 @@ class Particle:
             self.p = 0
 
     def sense(self, map):
-        sample_angles = [(dtheta * 0.09083)+ self.theta for dtheta in xrange(-320, 320, RAY_MOD)]
-        ray_endpts = [get_endpoint_at_angle(self.x, self.y, a) for a in sample_angles]
+        sample_angles = [(dtheta * 0.09083) + self.theta for dtheta in xrange(-320, 320, RAY_MOD)]
         readings = []
+        for i, angle in enumerate(sample_angles):
+            dist = distance_to_obs((self.mx, self.my), angle)
+            readings.append(dist)
+            
 
-        for i, ep in enumerate(ray_endpts):
-            #scaled_ep = ep[0] * CELLS_IN_ONE_METRE, ep[1] * CELLS_IN_ONE_METRE
-            #bp = bresenham((self.x, self.y), scaled_ep)
-            scaled_ep = gcs2map(ep[0], ep[1])
-            bp = bresenham((self.mx, self.my), scaled_ep)
-            obstacle_found = False
-            for bpx, bpy in bp:
-                if not is_free_map(bpx, bpy, map):
-                    obstacle_found = True
-                    readings.append(self.map_get_distance_to(bpx, bpy))
-                    break
-            if not obstacle_found:
-                readings.append(LASER_MAX_RANGE)
         return readings
 
     def map_get_distance_to(self, j, k):
