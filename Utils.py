@@ -50,33 +50,7 @@ def distance_to_obs((mx, my), theta):
         try:
             cspace = pickle.load(open("cspace.p", "rb"))
         except IOError:
-            print("No configuration space yet! Calculating...")
-            mapfile = '/home/stu9/s4/bwb5381/project.png'
-            themap = Image.open(mapfile, mode='r')
-            themap = themap.convert("RGB")
-            mappix = themap.load()
-            cspace = dict()
-            for x in range(0, MAPWIDTH):
-                if x not in cspace:
-                    cspace[x] = dict()
-                for y in range(0, MAPHEIGHT):
-                    if y not in cspace[x]:
-                        cspace[x][y] = dict()
-                    for theta in range(0, 360, 2):
-                        print("calculating %d %d %d"%(x, y, theta))
-                        ep = get_endpoint_at_angle(x, y, theta)
-                        scaled_ep = gcs2map(ep[0], ep[1])
-                        bp = bresenham((x, y), scaled_ep)
-                        dist = LASER_MAX_RANGE
-                        for bpx, bpy in bp:
-                            if not is_free_map(bpx, bpy, mappix):
-                                dist = math.sqrt((x - bpx) ** 2 + (y - bpy) ** 2) / WORLD_TO_MAP_SCALE
-                                break
-                        cspace[x][y][theta] = dist
-                        print(dist)
-            pickle.dump(cspace, open("cspace.p", "wb"))
-
-
+            print("No configuration space calculated! Do that.")
 
        #ray_endpts = [get_endpoint_at_angle(self.x, self.y, a) for a in sample_angles]
         #readings = []
