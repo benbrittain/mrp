@@ -97,7 +97,7 @@ class Navigator(object):
         
         pose = localized_pose_msg.data.split()
         self.loz_current_location = np.array([float(pose[0]),float(pose[1])]) 
-        self.loz_yaw = float(pose[2]) - self.yaw
+        self.loz_yaw =  float(pose[2]) - self.yaw
         self.is_new_localizer_pos = True
         
         
@@ -144,11 +144,13 @@ class Navigator(object):
         q = odometry_msg.pose.pose.orientation
         
         # get robot's orientation w.r.t. z axis
-        yaw = 2*math.atan2(q.z,q.w) + self.loz_yaw
+        yaw = 2*math.atan2(q.z,q.w)
         # maps it to [0,2*pi] 
         if yaw < 0:
             yaw += 2.0*math.pi
         #self.yaw = yaw 
+	yaw += self.loz_yaw
+	yaw = yaw % (2 * math.pi)
         self.yaw = yaw 
         
         
@@ -315,7 +317,7 @@ class Navigator(object):
         if math.fabs(dYaw) >0.8:
             w_z = direction*0.4
         else:
-            w_z = dYaw/1.5 #2.2
+            w_z = direction * dYaw/1.5 #2.2
             
         return Vector3(0.0,0.0,w_z)
     
@@ -380,7 +382,7 @@ class Navigator(object):
         
         dYaw = self.get_dYaw()
         delta_dist = self.get_delta_distance()
-         
+        print 'dYaw', dYaw, 'delta_dist', delta_dist
         start_time = rospy.get_time()
         publish_rate = rospy.Rate(10) 
         
@@ -403,7 +405,7 @@ class Navigator(object):
             # this ensures that robot keeps moving forward when obstructed, in bug like 
             # fashion without using any memory. Inefficient but works.
             if  math.fabs(dYaw) > 0.3: #0.3
-                linear_velocity_vector = Vector3(0.01,0.0,0.0)
+                linear_velocity_vector = Vector3(0.1,0.0,0.0)
             
             twist = Twist( linear_velocity_vector,angular_velocity_vector)
             self.velocity_publisher.publish(twist)

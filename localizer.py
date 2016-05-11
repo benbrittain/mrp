@@ -68,7 +68,7 @@ class Localizer(tk.Frame):
         self.maparr = np.asarray(self.themap)
         self.landmarks = [[-12.0, 12.0, 180], [10.8, 12.7, 180], [8, -0.5, 90], [-18.4, -8.9, 0], [-54.5, 7.6, 90], [8, -1.5, 270]]
         #self.landmarks = [[10.8, 12.7, 180], [8, -0.5, 90]]
-        self.particles = Particle.scatter_near_landmarks(PARTICLES_PER_LANDMARK, self.landmarks, self.maparr, maintain_start_angle=False)
+        self.particles = Particle.scatter_near_landmarks(PARTICLES_PER_LANDMARK, self.landmarks, self.maparr, maintain_start_angle=True)
         self.render_particles()
 
         # odom
@@ -157,15 +157,8 @@ class Localizer(tk.Frame):
         else:
             self.last_theta = euler[2]
 
-        # if abs(d_theta) < 0.001:
-        #     d_theta = 0
-        # if dx < 0.01:
-        #     dx = 0
-        # if dy < 0.01:
-        #     dy = 0
-
         # todo -dtheta is hack. robot was turning in the opposite direction. Fix needed
-        return dist, -d_theta
+        return (x, y), dist, -d_theta, euler[2]
 
     def update(self):
         count = 0
@@ -176,8 +169,10 @@ class Localizer(tk.Frame):
             if mov is None:
                 continue
 
-            dist, dtheta = mov[0], mov[1]
-
+	    ox, oy = mov[0][0], mov[0][1]
+            dist, dtheta = mov[1], mov[2]
+	    otheta = mov[3]
+		
             if dist == 0 and dtheta == 0:
                 continue
 
@@ -204,9 +199,22 @@ class Localizer(tk.Frame):
 
             centroid = self.converged_loc(strategy="centroid")
             if centroid is not None:
+
+	        extra_mov = self.get_movement()
+		nx, ny = extra_mov[0][0], extra_mov[0][1]
+		ntheta = extra_mov[3]		
+		
                 median_angle = math.radians(np.median([p.theta for p in self.particles])) % (2.0 * math.pi)
+		lx, ly = centroid[0], centroid[1]
+		xx = median_angle - otheta
+		adjust_x = nx * np.cos(xx) - ny * np.sin(xx) + lx
+		adjust_y = ny * np.sin(xx) + ny * np.cos(xx) + ly
+		adjust_theta = ntheta + xx
+		
                 print("Converged at <%0.2f,%0.2f>@%0.2f"%(centroid[0], centroid[1], median_angle))
-                goal_str = '{0} {1} {2}'.format(centroid[0], centroid[1], median_angle)
+                print("Adjusted convergence at <%0.2f,%0.2f>@%0.2f"%(adjust_x, adjust_y, adjust_theta))
+		#goal_str = '{0} {1} {2}'.format(centroid[0], centroid[1], median_angle)
+                goal_str = '{0} {1} {2}'.format(adjust_x, adjust_y, xx)
                 self.goal_pub.publish(goal_str)
 
             self.remove_dead_particles()
@@ -243,7 +251,7 @@ class Localizer(tk.Frame):
             print("min angle %0.2f, max angle %0.2f, med angle %0.2f"%(min_a, max_a, median_angle))
 
             centroid = sum_x / len(coords), sum_y / len(coords), sum_z / len(coords)
-            particles_near_centroid = len([1 for p in self.particles if p.d3_get_distance_to(*centroid) < 0.75])
+            particles_near_centroid = len([1 for p in self.particles if p.d3_get_distance_to(*centroid) < 1])
 
             if particles_near_centroid > CENTROID_THRESHOLD:
                 return centroid
@@ -283,7 +291,7 @@ def update_particle((p, rread, maparr)):
 def main():
     rospy.init_node("localize", anonymous=True)
     root = tk.Tk()
-    l = Localizer('/home/stu9/s4/bwb5381/project.png', master=root, height=700, width=2000)
+    l = Localizer('/home/stu12/s11/mhs1841/catkin_ws/src/hw1/src/scripts/project.png', master=root, height=700, width=2000)
     rospy.Subscriber("/r1/kinect_laser/scan", LaserScan, l.laser_update)
     rospy.Subscriber("/r1/odom", Odometry, l.odom_update)
     t = Timer(0.1, l.update)
