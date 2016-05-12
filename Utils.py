@@ -1,12 +1,13 @@
 import random
 
+import gzip
 import math
 import heapq
 import multiprocessing
 from itertools import izip
 from PIL import Image
 import numpy as np
-import pickle
+import cPickle as pickle
 
 WORLD_TO_MAP_SCALE = 15.758
 RAY_MOD = 30
@@ -44,34 +45,16 @@ class PriorityQueue:
 
 def distance_to_obs((mx, my), theta):
     global cspace
-    if cspace != None:
-        return cspace[mx][my][theta]
-    else:
+    if cspace == None:
         try:
-            cspace = pickle.load(open("cspace.p", "rb"))
+            f = open('cspace.pklz','rb')
+            cspace = pickle.load(f)
+            print("cspace loaded")
+            f.close()
         except IOError:
             print("No configuration space calculated! Do that.")
-
-       #ray_endpts = [get_endpoint_at_angle(self.x, self.y, a) for a in sample_angles]
-        #readings = []
-
-        #for i, ep in enumerate(ray_endpts):
-        #    bp = distance_to_obs((self,mx, self.my), ep)
-
-        #
-        #    #scaled_ep = ep[0] * CELLS_IN_ONE_METRE, ep[1] * CELLS_IN_ONE_METRE
-        #    #bp = bresenham((self.x, self.y), scaled_ep)
-
-        #    scaled_ep = gcs2map(ep[0], ep[1])
-        #    obstacle_found = False
-        #    for bpx, bpy in bp:
-        #        if not is_free_map(bpx, bpy, map):
-        #            obstacle_found = True
-        #            readings.append(self.map_get_distance_to(bpx, bpy))
-        #            break
-        #    if not obstacle_found:
-        #        readings.append(LASER_MAX_RANGE)
-
+    idx = (int(theta / 2.0) + 45) % 180
+    return cspace[(my, mx)][idx]
 
 def bresenham(start, end):
     x1, y1 = start
