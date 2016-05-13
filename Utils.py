@@ -14,10 +14,10 @@ RAY_MOD = 20
 CELLS_IN_ONE_METRE = 2
 LASER_MAX_RANGE = 10
 LASER_SCAN_ANGLE_INCREMENT = 10
-TOTAL_PARTICLES = 1200
+TOTAL_PARTICLES = 2400
 PARTICLES_PER_LANDMARK = TOTAL_PARTICLES / 6
 
-THRESHOLD = 1.0/(TOTAL_PARTICLES * 1.8)
+THRESHOLD = 1.0/(TOTAL_PARTICLES * 12.8)
 
 CENTROID_THRESHOLD = TOTAL_PARTICLES * 0.75  # %
 RESAMPLE_THRESHOLD = TOTAL_PARTICLES * 0.80  # %
@@ -131,7 +131,7 @@ def map2gcs(mx, my):
     """
     x = (mx - 1000.0) / WORLD_TO_MAP_SCALE
     y = (350.0 - my) / WORLD_TO_MAP_SCALE
-    return int(x), int(y)
+    return x, y
 
 def gcs2map(x, y):
     """
@@ -154,7 +154,7 @@ def prob_diff_readings(robot, particle):
     """
     diff = 1.0
     a = 1.0
-    c = 0.6
+    c = 2.6
     #print("HERE!")
     for expected, actual in zip(robot, particle):
         b = expected

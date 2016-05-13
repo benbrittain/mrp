@@ -2,7 +2,7 @@ import math
 from Utils import *
 import numpy as np
 
-SCATTER_SPREAD = 0.5
+SCATTER_SPREAD = 0.8
 ANGLE_NOISE = 10.0
 
 class Particle:
@@ -49,7 +49,18 @@ class Particle:
             #y = l[1] + 1.0
             #theta = l[2] + 1.0
             #p.append(Particle(x, y, theta, p=1.0/(100 * len(landmarks))))
-        print(p)
+        return p
+
+    @staticmethod
+    def scatter_around_map(count, map):
+        p = []
+        while len(p) != count:
+            y = np.random.randint(0, 700)
+            x = np.random.randint(0, 2000)
+            (x, y) = map2gcs(x, y)
+            theta = np.random.randint(0, 360)
+            if is_free_gcs(x, y, map):
+                p.append(Particle(x, y, theta, p=1.0/count))
         return p
 
     @staticmethod

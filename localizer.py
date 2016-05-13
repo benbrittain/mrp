@@ -87,6 +87,7 @@ class Localizer(tk.Frame):
         #self.landmarks = [[10.8, 12.7, 180], [8, -1.5, 270]]
         #self.particles = Particle.scatter_near_test(100, self.landmarks, self.maparr, maintain_start_angle=True)
         self.particles = Particle.scatter_near_landmarks(PARTICLES_PER_LANDMARK, self.landmarks, self.maparr, maintain_start_angle=True)
+        #self.particles = Particle.scatter_around_map(20000,self.maparr)
         self.obs_points = []
         self.render_particles()
 
@@ -96,7 +97,6 @@ class Localizer(tk.Frame):
         self.last_theta = 0.0
         self.last_x = 0.0
         self.last_y = 0.0
-
 
         # sensors
         self.laser_queue = Queue.LifoQueue()
@@ -209,19 +209,24 @@ class Localizer(tk.Frame):
             idx = [int(np.radians(dtheta)/step) for dtheta in range(0, 60, 2)]
             rread = []
             for i in idx:
-                rread.append(readings[i])
+                if math.isnan(readings[i]):
+                    rread.append(10.0)
+                else:
+                    rread.append(readings[i])
 
             for p in self.particles:
                 pread, locs = p.sense(self.maparr)
                 self.obs_points += locs
                 p.p *= prob_diff_readings(rread, pread)
 
+            for p in self.particles:
+                print(p.p)
+
             end_time = rospy.get_time()
             print("Time taken %d seconds"%(end_time -start_time))
 
             centroid = self.converged_loc(strategy="centroid")
             if centroid is not None:
-
 	        extra_mov = self.get_movement()
 		nx, ny = extra_mov[0][0], extra_mov[0][1]
 		ntheta = extra_mov[3]		
@@ -308,8 +313,10 @@ def main():
     #l = Localizer('/home/stu12/s11/mhs1841/catkin_ws/src/hw1/src/scripts/project.png', master=root, height=700, width=2000)
     # we are bad people
     l = Localizer('/home/stu9/s4/bwb5381/project.png', master=root, height=700, width=2000)
-    rospy.Subscriber("/r1/kinect_laser/scan", LaserScan, l.laser_update)
-    rospy.Subscriber("/r1/odom", Odometry, l.odom_update)
+    #rospy.Subscriber("/r1/kinect_laser/scan", LaserScan, l.laser_update)
+    #rospy.Subscriber("/r1/odom", Odometry, l.odom_update)
+    rospy.Subscriber("/scan", LaserScan, l.laser_update)
+    rospy.Subscriber("/pose", Odometry, l.odom_update)
     t = Timer(0.1, l.update)
     t.start()
     root.mainloop()

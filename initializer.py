@@ -33,11 +33,12 @@ LOCAL_DIST_FWD = 16.0
 LOCAL_DIST_ROT = 2*math.pi
 
 class Initializer(object):
-    def __init__(self, simulated=True):
+    def __init__(self, simulated=False):
         """Configures Publishers and configuration."""
         rospy.init_node('initializer', anonymous=True)
         self.rate = rospy.Rate(10)
-        ns = '/r1/' if simulated else '/'
+        #ns = '/r1/' if simulated else '/'
+        ns = '/'
         self.linear_speed = INITIAL_SPEED
         self.motor_state_pub = rospy.Publisher(ns + 'cmd_motor_state', MotorState, latch=True, queue_size=10)
         self.vel_pub = rospy.Publisher(ns + 'cmd_vel', Twist, queue_size=10)
@@ -135,7 +136,7 @@ class Initializer(object):
 
 def main():
     tars = Initializer()
-    rospy.Subscriber("/r1/odom", Odometry, tars.odom_update)
+    rospy.Subscriber("/pose", Odometry, tars.odom_update)
     rospy.Subscriber("/localized_pos", String, tars.pos_update)
     try:
         tars.run()
