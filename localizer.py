@@ -22,6 +22,7 @@ from std_msgs.msg import String
 from functools import partial
 from multiprocessing import Pool
 
+from Utils import initialize_cspace
 from Particle import *
 
 def oval(x, y):
@@ -40,6 +41,14 @@ class Localizer(tk.Frame):
             root.after(500, self.render_particles, root)
         else:
             self.reset_map()
+            for p in self.obs_points:
+                r, g, b = (255, 100, 0)
+                color = (int(r), int(g), int(b))
+                self.mappix[p[0], p[1]] = color
+                self.mappix[p[0]+1, p[1]] = color
+                self.mappix[p[0]+1, p[1]+1] = color
+                self.mappix[p[0], p[1]+1] = color
+            self.obs_points = []
             for p in self.particles:
                 h = 0.33 * p.p
                 r, g, b = colorsys.hls_to_rgb(h, 127, -1)
@@ -73,8 +82,12 @@ class Localizer(tk.Frame):
 
         self.maparr = np.asarray(self.themap)
         self.landmarks = [[-12.0, 12.0, 180], [10.8, 12.7, 180], [8, -0.5, 90], [-18.4, -8.9, 0], [-54.5, 7.6, 90], [8, -1.5, 270]]
-        #self.landmarks = [[10.8, 12.7, 180], [8, -0.5, 90]]
+        #self.landmarks = [[8, -1.5, 270]]
+        #self.landmarks = [[-54.5, 7.6, 90]]
+        #self.landmarks = [[10.8, 12.7, 180], [8, -1.5, 270]]
+        #self.particles = Particle.scatter_near_test(100, self.landmarks, self.maparr, maintain_start_angle=True)
         self.particles = Particle.scatter_near_landmarks(PARTICLES_PER_LANDMARK, self.landmarks, self.maparr, maintain_start_angle=True)
+        self.obs_points = []
         self.render_particles()
 
         # odom
@@ -83,6 +96,7 @@ class Localizer(tk.Frame):
         self.last_theta = 0.0
         self.last_x = 0.0
         self.last_y = 0.0
+
 
         # sensors
         self.laser_queue = Queue.LifoQueue()
@@ -124,8 +138,9 @@ class Localizer(tk.Frame):
     def normalize_particles(self):
         min_x = min(_.p for _ in self.particles)
         max_x = max(_.p for _ in self.particles)
-        for i in range(len(self.particles)):
-            self.particles[i].p = (self.particles[i].p - min_x) / (max_x - min_x)
+        if min_x != max_x:
+            for i in range(len(self.particles)):
+                self.particles[i].p = (self.particles[i].p - min_x) / (max_x - min_x)
 
     def remove_dead_particles(self, strategy=None):
         self.particles = filter(lambda p: p.p > THRESHOLD, self.particles)
@@ -189,13 +204,17 @@ class Localizer(tk.Frame):
             if lmsg is None:
                 continue
 
-            rread = self.get_robot_readings(lmsg)
-            rread = [r for idx, r in enumerate(rread) if idx % RAY_MOD == 0]
+            readings = self.get_robot_readings(lmsg)
+            step = 0.00158544606529
+            idx = [int(np.radians(dtheta)/step) for dtheta in range(0, 60, 2)]
+            rread = []
+            for i in idx:
+                rread.append(readings[i])
 
             for p in self.particles:
-                if p.p != 0:
-                    pread = p.sense(self.maparr)
-                    p.p *= prob_diff_readings(rread, pread)
+                pread, locs = p.sense(self.maparr)
+                self.obs_points += locs
+                p.p *= prob_diff_readings(rread, pread)
 
             end_time = rospy.get_time()
             print("Time taken %d seconds"%(end_time -start_time))
@@ -220,8 +239,8 @@ class Localizer(tk.Frame):
                 goal_str = '{0} {1} {2}'.format(adjust_x, adjust_y, xx)
                 self.goal_pub.publish(goal_str)
 
-            self.remove_dead_particles()
             self.normalize_particles()
+            self.remove_dead_particles()
             self.resample_if_required()
             self.render_particles()
     
@@ -231,9 +250,8 @@ class Localizer(tk.Frame):
         return msg
 
     def get_robot_readings(self, lmsg):
-        indices = [0, 106, 215, 320, 425, 635]
         msg = self.laser_queue.get()
-        r = [msg.ranges[i] for i in indices]
+        r = msg.ranges
         return r
 
     def resample_if_required(self):
@@ -283,17 +301,10 @@ class Localizer(tk.Frame):
     #def sonar_update(self, smsg):
     #    self.sonar_queue.put(smsg)
 
-# zomg. so much copying. how are there not better primitives?!
-def update_particle((p, rread, maparr)):
-    #np = Particle(p.x, p.y, p.theta, p.p)
-    if p.p != 0:
-        pread = p.sense(maparr)
-        p.p *= prob_diff_readings(rread, pread)
-    return p
-
 def main():
     rospy.init_node("localize", anonymous=True)
     root = tk.Tk()
+    initialize_cspace()
     #l = Localizer('/home/stu12/s11/mhs1841/catkin_ws/src/hw1/src/scripts/project.png', master=root, height=700, width=2000)
     # we are bad people
     l = Localizer('/home/stu9/s4/bwb5381/project.png', master=root, height=700, width=2000)

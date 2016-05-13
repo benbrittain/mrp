@@ -10,15 +10,14 @@ import numpy as np
 import cPickle as pickle
 
 WORLD_TO_MAP_SCALE = 15.758
-RAY_MOD = 30
+RAY_MOD = 20
 CELLS_IN_ONE_METRE = 2
 LASER_MAX_RANGE = 10
 LASER_SCAN_ANGLE_INCREMENT = 10
 TOTAL_PARTICLES = 1200
 PARTICLES_PER_LANDMARK = TOTAL_PARTICLES / 6
 
-THRESHOLD = 1.0/(TOTAL_PARTICLES * 1.3)
-UPPER_THRESHOLD = 1.0/(TOTAL_PARTICLES * 0.7)
+THRESHOLD = 1.0/(TOTAL_PARTICLES * 1.8)
 
 CENTROID_THRESHOLD = TOTAL_PARTICLES * 0.75  # %
 RESAMPLE_THRESHOLD = TOTAL_PARTICLES * 0.80  # %
@@ -42,19 +41,24 @@ class PriorityQueue:
     def get(self):
         return heapq.heappop(self.elements)[1]
 
-
 def distance_to_obs((mx, my), theta):
     global cspace
     if cspace == None:
-        try:
-            f = open('cspace.pklz','rb')
-            cspace = pickle.load(f)
-            print("cspace loaded")
-            f.close()
-        except IOError:
-            print("No configuration space calculated! Do that.")
-    idx = (int(theta / 2.0) + 45) % 180
-    return cspace[(my, mx)][idx]
+        initialize_cspace()
+    theta += 270
+    idx = int((theta / 2.0)) % 180
+    if (my, mx) in cspace:
+        return cspace[(my, mx)][idx]
+
+def initialize_cspace():
+    global cspace
+    try:
+        f = open('cspace.pklz','rb')
+        cspace = pickle.load(f)
+        print("cspace loaded")
+        f.close()
+    except IOError:
+        print("No configuration space calculated! Do that.")
 
 def bresenham(start, end):
     x1, y1 = start
@@ -115,6 +119,10 @@ def is_free_map(mx, my, map):
     # Check in my, mx because traditionally 2D arrays have X going top-down
     # and Y going left-right. But with images/pixels it is vice-versa.
     # Can't be black
+    if mx >= 2000:
+        return False
+    if my >= 700:
+        return False
     return(np.any(map[my, mx] != (0, 0, 0)))
 
 def map2gcs(mx, my):
@@ -146,10 +154,14 @@ def prob_diff_readings(robot, particle):
     """
     diff = 1.0
     a = 1.0
-    c = 0.2
+    c = 0.6
+    #print("HERE!")
     for expected, actual in zip(robot, particle):
         b = expected
         gaus_m = lambda x: a*math.e**(-1.0*(((x-b)**2.0)/(2.0*c**2)))
+        #print(expected, actual)
+        #print(expected, actual, gaus_m(actual))
         diff *= gaus_m(actual)
+#    print("HERE2!")
     return diff
 

@@ -38,6 +38,21 @@ class Particle:
         return p
 
     @staticmethod
+    def scatter_near_test(count, landmarks, map, maintain_start_angle=False):
+        p = []
+        for l in landmarks:
+            x = l[0]
+            y = l[1]
+            theta = l[2]
+            p.append(Particle(x, y, theta, p=1.0/(100 * len(landmarks))))
+            #x = l[0] + 1.0
+            #y = l[1] + 1.0
+            #theta = l[2] + 1.0
+            #p.append(Particle(x, y, theta, p=1.0/(100 * len(landmarks))))
+        print(p)
+        return p
+
+    @staticmethod
     def scatter_near_landmarks(count, landmarks, map, maintain_start_angle=False):
         p = []
         for l in landmarks:
@@ -63,14 +78,17 @@ class Particle:
             self.p = 0
 
     def sense(self, map):
-        sample_angles = [(dtheta * 0.09083) + self.theta for dtheta in xrange(-320, 320, RAY_MOD)]
+        # TODO MAKE MORE ACCURATE
+        sample_angles = [360 - (dtheta + self.theta) for dtheta in range(-29, 29, 2)]
         readings = []
+        locs = []
         for i, angle in enumerate(sample_angles):
             dist = distance_to_obs((self.mx, self.my), angle)
-            readings.append(dist)
-            
-
-        return readings
+            if dist != None:
+                readings.append(dist)
+                loc = (self.mx + (dist*WORLD_TO_MAP_SCALE)*math.cos(np.radians(angle)), self.my + (dist*WORLD_TO_MAP_SCALE)*math.sin(np.radians(angle)))
+                locs.append(loc)
+        return readings, locs
 
     def map_get_distance_to(self, j, k):
         return math.sqrt((self.mx - j) ** 2 + (self.my - k) ** 2) / WORLD_TO_MAP_SCALE
