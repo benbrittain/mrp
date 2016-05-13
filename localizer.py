@@ -221,7 +221,6 @@ class Localizer(tk.Frame):
 
             centroid = self.converged_loc(strategy="centroid")
             if centroid is not None:
-
 	        extra_mov = self.get_movement()
 		nx, ny = extra_mov[0][0], extra_mov[0][1]
 		ntheta = extra_mov[3]		
@@ -238,7 +237,7 @@ class Localizer(tk.Frame):
 		#goal_str = '{0} {1} {2}'.format(centroid[0], centroid[1], median_angle)
                 goal_str = '{0} {1} {2}'.format(adjust_x, adjust_y, xx)
                 self.goal_pub.publish(goal_str)
-
+                break
             self.normalize_particles()
             self.remove_dead_particles()
             self.resample_if_required()

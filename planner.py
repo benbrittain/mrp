@@ -37,6 +37,11 @@ def manhattan(a, b):
     (x2, y2) = b
     return abs(x1 - x2) + abs(y1 - y2)
 
+def dist(a, b):
+    (x1, y1) = a
+    (x2, y2) = b
+    return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
 # expensive but biases toward the center of hallways
 # range is 1 (nothing) - 4
 def wall_dist_cost(themap, (x, y)):
@@ -110,6 +115,8 @@ class Planner(tk.Frame):
 
         self.curr_loc = None
         self.goal_loc = None
+        self.guessed_loc = None
+        self.step = None
 
         # rospy stuff
         self.goal_pub = rospy.Publisher('/goal', String, queue_size=1)
@@ -167,6 +174,18 @@ class Planner(tk.Frame):
                 for add_y in range(-3, 3):
                     self.mappix[curr_x + add_x, curr_y + add_y] = (0, 255, 0)
 
+        if self.guessed_loc != None:
+            (gx, gy) = gcs2map(*self.guessed_loc)
+            for add_x in range(-3, 3):
+                for add_y in range(-3, 3):
+                    self.mappix[gx + add_x, gy + add_y] = (255, 51, 153)
+
+        if self.step != None:
+            (sx, sy) = gcs2map(*self.step)
+            for add_x in range(-3, 3):
+                for add_y in range(-3, 3):
+                    self.mappix[sx + add_x, sy + add_y] = (128, 128, 0)
+
         for (step_x, step_y) in self.draw_path:
             for add_x in range(-1, 1):
                 for add_y in range(-1, 1):
@@ -180,10 +199,10 @@ class Planner(tk.Frame):
 
     def publish_next_step(self):
         if len(self.path) > 0:
-            if len(self.path) > 15:
-                self.step = self.path[14]
+            if len(self.path) > 10:
+                self.step = self.path[10]
             else:
-                self.step = self.path[-1]
+                self.step = self.goal_loc
             goal_str = "%f %f" %self.step
             print("going to %f %f"%self.step)
             self.goal_pub.publish(goal_str)
@@ -196,8 +215,9 @@ class Planner(tk.Frame):
 
             guessed_loc_msg = self.get_queue(self.guessed_loc_queue)
             if guessed_loc_msg != None:
-                guessed_loc = tuple(map(float, guessed_loc_msg.split(" ")))[:2]
-                dist_to_step = manhattan(guessed_loc, self.step)
+                self.guessed_loc = guessed_loc = tuple(map(float, guessed_loc_msg.split(" ")))[:2]
+                dist_to_step = dist(guessed_loc, self.step)
+                print(dist_to_step)
                 if dist_to_step < 1:
                     self.curr_loc = guessed_loc
                     trigger_plan = True

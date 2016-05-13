@@ -17,7 +17,7 @@ LASER_SCAN_ANGLE_INCREMENT = 10
 TOTAL_PARTICLES = 1200
 PARTICLES_PER_LANDMARK = TOTAL_PARTICLES / 6
 
-THRESHOLD = 1.0/(TOTAL_PARTICLES * 1.8)
+THRESHOLD = 1.0/(TOTAL_PARTICLES * 10.0)
 
 CENTROID_THRESHOLD = TOTAL_PARTICLES * 0.75  # %
 RESAMPLE_THRESHOLD = TOTAL_PARTICLES * 0.80  # %
@@ -154,14 +154,10 @@ def prob_diff_readings(robot, particle):
     """
     diff = 1.0
     a = 1.0
-    c = 0.6
-    #print("HERE!")
+    c = 0.8
     for expected, actual in zip(robot, particle):
         b = expected
         gaus_m = lambda x: a*math.e**(-1.0*(((x-b)**2.0)/(2.0*c**2)))
-        #print(expected, actual)
-        #print(expected, actual, gaus_m(actual))
         diff *= gaus_m(actual)
-#    print("HERE2!")
     return diff
 
