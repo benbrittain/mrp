@@ -44,7 +44,7 @@ class Manual:
         self.linear_speed = INITIAL_SPEED
 
         self.motor_state_pub = rospy.Publisher(ns + 'cmd_motor_state', MotorState, latch=True, queue_size=10)
-        self.vel_pub = rospy.Publisher(ns + 'cmd_vel', Twist, queue_size=10)
+        self.vel_pub = rospy.Publisher(ns + 'cmd_vel', Twist, queue_size=1)
         self.motor_state_pub.publish(1)
         self.dlog("set motor state!")
         self.rate.sleep()

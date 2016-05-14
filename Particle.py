@@ -2,7 +2,7 @@ import math
 from Utils import *
 import numpy as np
 
-SCATTER_SPREAD = 0.8
+SCATTER_SPREAD = 1.2
 ANGLE_NOISE = 10.0
 
 class Particle:
