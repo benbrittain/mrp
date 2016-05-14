@@ -4,7 +4,10 @@
 ```
 git clone https://github.com/cavedweller/mrp.git
 
-#TODO explain how to get pre-computed cspace
+
+If in the google.rit domain, This is the pre-computed cspace file.
+https://drive.google.com/open?id=0B-9CT7zfTLB1UV9Rc3Q3VDZySG8
+
 ```
 
 # Running
