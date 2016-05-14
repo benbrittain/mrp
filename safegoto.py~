@@ -35,7 +35,7 @@ from math import atan2
 # Class to define Navigator Object
 ########################################
 class Navigator(object):
-    def __init__(self, run_mode = 'hw'):
+    def __init__(self, run_mode = 'sim'):
         rospy.init_node('navigator', anonymous=True)
         self.motor_publisher = rospy.Publisher("cmd_motor_state", MotorState,queue_size=10,latch = True)
         self.motor_publisher.publish(MotorState(1))
@@ -52,7 +52,7 @@ class Navigator(object):
         
         if run_mode == 'hw':
             print('In hardware mode')
-            #rospy.Subscriber('/pose', Odometry, self.update_odometer)
+            rospy.Subscriber('/pose', Odometry, self.update_odometer)
             rospy.Subscriber('/scan', LaserScan, self.update_laser_scanner)
             rospy.Subscriber('/sonar', SonarArray, self.update_sonar_scanner)
             self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10, latch = True)
@@ -63,7 +63,7 @@ class Navigator(object):
             rospy.Subscriber('/endgoal', String, self.end_goal_update)
         elif run_mode == 'sim':
             print('In simulator mode')
-            #rospy.Subscriber('/r1/odom', Odometry, self.update_odometer)
+            rospy.Subscriber('/r1/odom', Odometry, self.update_odometer)
             rospy.Subscriber('/r1/kinect_laser/scan', LaserScan, self.update_laser_scanner)
             rospy.Subscriber('/r1/sonar', SonarArray, self.update_sonar_scanner)
             
@@ -104,7 +104,7 @@ class Navigator(object):
             print("No pose from localizer")
             return
 
-        '''
+        
         pose = localized_pose_msg.data.split()
         self.loz_current_location = np.array([float(pose[0]),float(pose[1])]) 
         self.loz_yaw =  float(pose[2]) - self.yaw
@@ -115,7 +115,7 @@ class Navigator(object):
         '''
         self.yaw = float(pose[2])
         np.array([float(pose[0]),float(pose[1])]) 
-        
+        '''
         
         
     ###########################################
@@ -240,8 +240,8 @@ class Navigator(object):
     ##########################################################################    
     def calculate_obstacle_potential_field(self):
         
-        k_o_laser = 10
-        k_o_sonar =40
+        k_o_laser = 5
+        k_o_sonar =60
      
         laser_range_data = self.laser_ranges
         sonar_range_data = self.sonar_ranges

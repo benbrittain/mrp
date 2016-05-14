@@ -14,10 +14,10 @@ RAY_MOD = 20
 CELLS_IN_ONE_METRE = 2
 LASER_MAX_RANGE = 10
 LASER_SCAN_ANGLE_INCREMENT = 10
-TOTAL_PARTICLES = 2400
+TOTAL_PARTICLES = 4200
 PARTICLES_PER_LANDMARK = TOTAL_PARTICLES / 6
 
-THRESHOLD = 1.0/(TOTAL_PARTICLES * 12.8)
+THRESHOLD = 1.0/(TOTAL_PARTICLES * 40.0)
 
 CENTROID_THRESHOLD = TOTAL_PARTICLES * 0.75  # %
 RESAMPLE_THRESHOLD = TOTAL_PARTICLES * 0.80  # %
@@ -154,7 +154,7 @@ def prob_diff_readings(robot, particle):
     """
     diff = 1.0
     a = 1.0
-    c = 2.6
+    c = 1.8
     #print("HERE!")
     for expected, actual in zip(robot, particle):
         b = expected

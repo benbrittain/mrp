@@ -37,8 +37,7 @@ class Initializer(object):
         """Configures Publishers and configuration."""
         rospy.init_node('initializer', anonymous=True)
         self.rate = rospy.Rate(10)
-        #ns = '/r1/' if simulated else '/'
-        ns = '/'
+        ns = '/r1/' if simulated else '/'
         self.linear_speed = INITIAL_SPEED
         self.motor_state_pub = rospy.Publisher(ns + 'cmd_motor_state', MotorState, latch=True, queue_size=10)
         self.vel_pub = rospy.Publisher(ns + 'cmd_vel', Twist, queue_size=10)
@@ -137,6 +136,7 @@ class Initializer(object):
 def main():
     tars = Initializer()
     rospy.Subscriber("/pose", Odometry, tars.odom_update)
+    #rospy.Subscriber("/r1/odom", Odometry, tars.odom_update)
     rospy.Subscriber("/localized_pos", String, tars.pos_update)
     try:
         tars.run()
