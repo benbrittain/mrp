@@ -48,6 +48,7 @@ class Navigator(object):
         
         self.is_new_localizer_pos = False
         self.loz_current_location = [0.0,0.0]
+        self.current_location = [0.0,0.0]
         self.loz_yaw = 0.0
         
         if run_mode == 'hw':
@@ -104,18 +105,15 @@ class Navigator(object):
             print("No pose from localizer")
             return
 
-        '''
         pose = localized_pose_msg.data.split()
-        self.loz_current_location = np.array([float(pose[0]),float(pose[1])]) 
-        self.loz_yaw =  float(pose[2]) - self.yaw
+        #self.loz_current_location = np.array([float(pose[0]),float(pose[1])]) 
+        #self.loz_yaw =  float(pose[2]) - self.yaw
         # reset odom
         # stop robot 
         # wait for rest 
         self.is_new_localizer_pos = True
-        '''
         self.yaw = float(pose[2])
-        np.array([float(pose[0]),float(pose[1])]) 
-        
+        self.current_location = np.array([float(pose[0]),float(pose[1])]) 
         
         
     ###########################################
@@ -188,7 +186,7 @@ class Navigator(object):
         
         # limit robot's field of view to 0.8 m, works better in cramped 
         # environment such as hallway
-        self.max_laser_range = 2.0
+        self.max_laser_range = 1.0
         #self.max_laser_range = 10.0
         
         
@@ -219,7 +217,7 @@ class Navigator(object):
        
          # limit robot's field of view to 0.8 m, works better in cramped 
         # environment such as hallway
-        self.max_sonar_range = 1.7 #0.3      
+        self.max_sonar_range = 1.0 #0.3      
         
         # add angle information for each SONAR range reading     
         sonar_angles = np.array([-90,-50,-30,-10,10,30,50,90])*np.pi/180
@@ -241,7 +239,7 @@ class Navigator(object):
     def calculate_obstacle_potential_field(self):
         
         k_o_laser = 10
-        k_o_sonar =40
+        k_o_sonar = 40
      
         laser_range_data = self.laser_ranges
         sonar_range_data = self.sonar_ranges
@@ -343,11 +341,8 @@ class Navigator(object):
     ##########################################################################
     def get_delta_distance(self):
         
-        msg = self.odometry_msg 
-        pos = msg.pose.pose.position
-        
-        x = pos.x
-        y = pos.y
+        x = self.current_location[0]
+        y = self.current_location[1]
         #x =  self.loz_current_location[0]
         #y =  self.loz_current_location[1]
         
@@ -408,6 +403,7 @@ class Navigator(object):
         
         dYaw = self.get_dYaw()
         delta_dist = self.get_delta_distance()
+        
         print 'dYaw', dYaw, 'delta_dist', delta_dist
         start_time = rospy.get_time()
         publish_rate = rospy.Rate(10) 
